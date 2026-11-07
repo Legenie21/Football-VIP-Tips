@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Pronostics Foot"
+description = "Un site responsive pour consulter des pronostics de football gratuits et VIP, gérer un abonnement mensuel de 1 000 FCFA par validation manuelle Mobile Money, et permettre à l’administrateur de publier les pronostics ainsi que leurs résultats."
+version = "1.0.0"
+id = "artifacts/pronostics-foot"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23927
+
+[services.development]
+run = "pnpm --filter @workspace/pronostics-foot run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pronostics-foot", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/pronostics-foot/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23927"
+BASE_PATH = "/"

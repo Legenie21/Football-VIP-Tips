@@ -1,0 +1,1 @@
+- [Pronostics Foot](football-predictions-product.md) — user-stated pricing and daily prediction workflow.

@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API de pronostics, abonnements VIP et paiements Mobile Money manuels.
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: predictions
+    description: Pronostics et résultats de football
+  - name: membership
+    description: Abonnement VIP et paiements
+  - name: admin
+    description: Gestion réservée à l’administrateur
 paths:
   /healthz:
     get:
@@ -24,7 +30,303 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /summary:
+    get:
+      operationId: getSummary
+      tags: [predictions]
+      summary: Get the public prediction summary
+      responses:
+        "200":
+          description: Public summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Summary"
+  /predictions:
+    get:
+      operationId: getPredictions
+      tags: [predictions]
+      summary: List visitor-visible predictions
+      parameters:
+        - name: tier
+          in: query
+          schema:
+            type: string
+            enum: [free, vip]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, won, lost, void]
+      responses:
+        "200":
+          description: VIP selections are omitted unless the signed-in user has an active membership
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prediction"
+  /payment-instructions:
+    get:
+      operationId: getPaymentInstructions
+      tags: [membership]
+      summary: Get monthly price and Mobile Money instructions
+      responses:
+        "200":
+          description: Current payment instructions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentInstructions"
+  /membership:
+    get:
+      operationId: getMembership
+      tags: [membership]
+      summary: Get the current user's membership
+      security:
+        - clerkSession: []
+      responses:
+        "200":
+          description: Membership status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Membership"
+        "401":
+          description: Sign-in required
+  /payment-requests:
+    get:
+      operationId: getMyPaymentRequests
+      tags: [membership]
+      summary: List the current user's payment requests
+      security:
+        - clerkSession: []
+      responses:
+        "200":
+          description: Payment requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentRequest"
+        "401":
+          description: Sign-in required
+    post:
+      operationId: createPaymentRequest
+      tags: [membership]
+      summary: Submit a Mobile Money transaction reference
+      security:
+        - clerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequestInput"
+      responses:
+        "201":
+          description: Request submitted for manual review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequest"
+        "400":
+          description: Invalid payment request
+        "401":
+          description: Sign-in required
+        "409":
+          description: Transaction reference already submitted
+  /admin/summary:
+    get:
+      operationId: getAdminSummary
+      tags: [admin]
+      summary: Get administrator dashboard summary
+      security:
+        - clerkSession: []
+      responses:
+        "200":
+          description: Admin summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSummary"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
+  /admin/predictions:
+    get:
+      operationId: getAdminPredictions
+      tags: [admin]
+      summary: List all predictions for administration
+      security:
+        - clerkSession: []
+      responses:
+        "200":
+          description: All predictions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prediction"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
+    post:
+      operationId: createPrediction
+      tags: [admin]
+      summary: Publish a prediction
+      security:
+        - clerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictionInput"
+      responses:
+        "201":
+          description: Prediction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prediction"
+        "400":
+          description: Invalid prediction
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
+  /admin/predictions/{id}:
+    patch:
+      operationId: updatePrediction
+      tags: [admin]
+      summary: Edit a prediction or publish its result
+      security:
+        - clerkSession: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictionUpdate"
+      responses:
+        "200":
+          description: Updated prediction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prediction"
+        "400":
+          description: Invalid update
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
+        "404":
+          description: Prediction not found
+  /admin/payment-requests:
+    get:
+      operationId: getAdminPaymentRequests
+      tags: [admin]
+      summary: List Mobile Money payment requests for review
+      security:
+        - clerkSession: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        "200":
+          description: Payment requests with account IDs for administrator review
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPaymentRequest"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
+  /admin/payment-requests/{id}:
+    patch:
+      operationId: reviewPaymentRequest
+      tags: [admin]
+      summary: Approve or reject a payment request
+      security:
+        - clerkSession: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentReviewInput"
+      responses:
+        "200":
+          description: Reviewed payment request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPaymentRequest"
+        "400":
+          description: Invalid review
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
+        "404":
+          description: Payment request not found
+  /admin/payment-instructions:
+    patch:
+      operationId: updatePaymentInstructions
+      tags: [admin]
+      summary: Configure the Mobile Money payment details
+      security:
+        - clerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInstructionsUpdate"
+      responses:
+        "200":
+          description: Updated payment instructions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentInstructions"
+        "400":
+          description: Invalid payment details
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
 components:
+  securitySchemes:
+    clerkSession:
+      type: apiKey
+      in: cookie
+      name: __session
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +335,140 @@ components:
           type: string
       required:
         - status
+    Summary:
+      type: object
+      properties:
+        todayCount: { type: integer }
+        freeTodayCount: { type: integer }
+        vipTodayCount: { type: integer }
+        settledCount: { type: integer }
+        hitRate: { type: number }
+        latestResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/Prediction"
+      required: [todayCount, freeTodayCount, vipTodayCount, settledCount, hitRate, latestResults]
+    Prediction:
+      type: object
+      properties:
+        id: { type: integer }
+        homeTeam: { type: string }
+        awayTeam: { type: string }
+        league: { type: string }
+        kickoffAt: { type: string, format: date-time }
+        tier: { type: string, enum: [free, vip] }
+        market: { type: ["string", "null"] }
+        selection: { type: ["string", "null"] }
+        odds: { type: ["number", "null"] }
+        confidence: { type: ["integer", "null"] }
+        analysis: { type: ["string", "null"] }
+        status: { type: string, enum: [upcoming, won, lost, void] }
+        locked: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, homeTeam, awayTeam, league, kickoffAt, tier, market, selection, odds, confidence, analysis, status, locked, createdAt]
+    PredictionInput:
+      type: object
+      properties:
+        homeTeam: { type: string, minLength: 1 }
+        awayTeam: { type: string, minLength: 1 }
+        league: { type: string, minLength: 1 }
+        kickoffAt: { type: string, format: date-time }
+        tier: { type: string, enum: [free, vip] }
+        market: { type: string, minLength: 1 }
+        selection: { type: string, minLength: 1 }
+        odds: { type: ["number", "null"], minimum: 1 }
+        confidence: { type: ["integer", "null"], minimum: 1, maximum: 100 }
+        analysis: { type: ["string", "null"] }
+      required: [homeTeam, awayTeam, league, kickoffAt, tier, market, selection]
+    PredictionUpdate:
+      type: object
+      properties:
+        homeTeam: { type: string, minLength: 1 }
+        awayTeam: { type: string, minLength: 1 }
+        league: { type: string, minLength: 1 }
+        kickoffAt: { type: string, format: date-time }
+        tier: { type: string, enum: [free, vip] }
+        market: { type: string, minLength: 1 }
+        selection: { type: string, minLength: 1 }
+        odds: { type: ["number", "null"], minimum: 1 }
+        confidence: { type: ["integer", "null"], minimum: 1, maximum: 100 }
+        analysis: { type: ["string", "null"] }
+        status: { type: string, enum: [upcoming, won, lost, void] }
+      minProperties: 1
+    Membership:
+      type: object
+      properties:
+        active: { type: boolean }
+        startsAt: { type: ["string", "null"], format: date-time }
+        expiresAt: { type: ["string", "null"], format: date-time }
+        monthlyPrice: { type: integer }
+        currency: { type: string }
+      required: [active, startsAt, expiresAt, monthlyPrice, currency]
+    PaymentInstructions:
+      type: object
+      properties:
+        monthlyPrice: { type: integer }
+        currency: { type: string }
+        operator: { type: ["string", "null"], enum: [MTN, ORANGE, null] }
+        walletNumber: { type: ["string", "null"] }
+        walletName: { type: ["string", "null"] }
+        instructions: { type: ["string", "null"] }
+        configured: { type: boolean }
+      required: [monthlyPrice, currency, operator, walletNumber, walletName, instructions, configured]
+    PaymentInstructionsUpdate:
+      type: object
+      properties:
+        operator: { type: string, enum: [MTN, ORANGE] }
+        walletNumber: { type: string, minLength: 5 }
+        walletName: { type: string, minLength: 1 }
+        instructions: { type: string, minLength: 1 }
+      required: [operator, walletNumber, walletName, instructions]
+    PaymentRequestInput:
+      type: object
+      properties:
+        operator: { type: string, enum: [MTN, ORANGE] }
+        transactionReference: { type: string, minLength: 4, maxLength: 120 }
+      required: [operator, transactionReference]
+    PaymentRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        operator: { type: string, enum: [MTN, ORANGE] }
+        transactionReference: { type: string }
+        amount: { type: integer }
+        currency: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        adminNote: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        reviewedAt: { type: ["string", "null"], format: date-time }
+      required: [id, operator, transactionReference, amount, currency, status, adminNote, createdAt, reviewedAt]
+    AdminPaymentRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: string }
+        operator: { type: string, enum: [MTN, ORANGE] }
+        transactionReference: { type: string }
+        amount: { type: integer }
+        currency: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        adminNote: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        reviewedAt: { type: ["string", "null"], format: date-time }
+      required: [id, userId, operator, transactionReference, amount, currency, status, adminNote, createdAt, reviewedAt]
+    PaymentReviewInput:
+      type: object
+      properties:
+        status: { type: string, enum: [approved, rejected] }
+        adminNote: { type: ["string", "null"], maxLength: 500 }
+      required: [status]
+    AdminSummary:
+      type: object
+      properties:
+        totalPredictions: { type: integer }
+        todayPredictions: { type: integer }
+        activeMembers: { type: integer }
+        pendingPayments: { type: integer }
+        hitRate: { type: number }
+      required: [totalPredictions, todayPredictions, activeMembers, pendingPayments, hitRate]
 
