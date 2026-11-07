@@ -141,14 +141,66 @@ export interface PredictionUpdate {
   status?: PredictionUpdateStatus;
 }
 
+export type MembershipStatus = typeof MembershipStatus[keyof typeof MembershipStatus];
+
+
+export const MembershipStatus = {
+  active: 'active',
+  expired: 'expired',
+  suspended: 'suspended',
+  inactive: 'inactive',
+} as const;
+
 export interface Membership {
   active: boolean;
+  status: MembershipStatus;
   /** @nullable */
   startsAt: string | null;
   /** @nullable */
   expiresAt: string | null;
+  /** @nullable */
+  suspendedAt: string | null;
   monthlyPrice: number;
   currency: string;
+}
+
+export type AdminMembershipStatus = typeof AdminMembershipStatus[keyof typeof AdminMembershipStatus];
+
+
+export const AdminMembershipStatus = {
+  active: 'active',
+  expired: 'expired',
+  suspended: 'suspended',
+} as const;
+
+export interface AdminMembership {
+  userId: string;
+  /** @nullable */
+  startsAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  suspendedAt: string | null;
+  updatedAt: string;
+  status: AdminMembershipStatus;
+}
+
+export type AdminMembershipActionAction = typeof AdminMembershipActionAction[keyof typeof AdminMembershipActionAction];
+
+
+export const AdminMembershipActionAction = {
+  extend: 'extend',
+  suspend: 'suspend',
+  resume: 'resume',
+} as const;
+
+export interface AdminMembershipAction {
+  action: AdminMembershipActionAction;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  months?: number;
 }
 
 /**

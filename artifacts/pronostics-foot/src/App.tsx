@@ -5,12 +5,12 @@ import { frFR } from '@clerk/localizations';
 import { shadcn } from '@clerk/themes';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
-  getGetAdminPaymentRequestsQueryKey, getGetAdminPredictionsQueryKey, getGetAdminSummaryQueryKey,
+  getGetAdminMembershipsQueryKey, getGetAdminPaymentRequestsQueryKey, getGetAdminPredictionsQueryKey, getGetAdminSummaryQueryKey,
   getGetMembershipQueryKey, getGetMyPaymentRequestsQueryKey, getGetPaymentInstructionsQueryKey,
   getGetPredictionsQueryKey, getGetSummaryQueryKey, useCreatePaymentRequest, useCreatePrediction,
-  useGetAdminPaymentRequests, useGetAdminPredictions, useGetAdminSummary, useGetMembership,
+  useGetAdminMemberships, useGetAdminPaymentRequests, useGetAdminPredictions, useGetAdminSummary, useGetMembership,
   useGetMyPaymentRequests, useGetPaymentInstructions, useGetPredictions, useGetSummary,
-  useReviewPaymentRequest, useUpdatePaymentInstructions, useUpdatePrediction,
+  useManageAdminMembership, useReviewPaymentRequest, useUpdatePaymentInstructions, useUpdatePrediction,
 } from '@workspace/api-client-react';
 import type { Prediction, PredictionInput, PredictionUpdate } from '@workspace/api-client-react';
 import {
@@ -131,6 +131,12 @@ function formatKickoff(value: string) {
 }
 function shortMark(team: string) { return team.trim().split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase(); }
 function resultLabel(status: string) { return status === 'won' ? 'Gagné' : status === 'lost' ? 'Perdu' : status === 'void' ? 'Annulé' : 'À venir'; }
+function membershipStatusLabel(status?: string) {
+  return status === 'active' ? 'Actif' : status === 'expired' ? 'Expiré' : status === 'suspended' ? 'Suspendu' : 'Inactif';
+}
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(value));
+}
 
 function PredictionCard({ item }: { item: Prediction }) {
   const locked = item.locked && item.tier === 'vip';
@@ -160,11 +166,30 @@ function PredictionCard({ item }: { item: Prediction }) {
 }
 
 function Home() {
+  const qc = useQueryClient();
   const summary = useGetSummary({ query: { queryKey: getGetSummaryQueryKey() } });
   const predictions = useGetPredictions({}, { query: { queryKey: getGetPredictionsQueryKey({}) } });
   const { user } = useUser();
+  const membership = useGetMembership({ query: { queryKey: getGetMembershipQueryKey(), enabled: Boolean(user) } });
+  const [membershipClock, setMembershipClock] = useState(() => Date.now());
+  useEffect(() => {
+    const expiresAt = membership.data?.expiresAt;
+    if (!membership.data?.active || !expiresAt) return;
+    const remaining = new Date(expiresAt).getTime() - Date.now();
+    const timer = window.setTimeout(() => {
+      setMembershipClock(Date.now());
+      void qc.invalidateQueries({ queryKey: getGetPredictionsQueryKey({}) });
+      void membership.refetch();
+    }, Math.max(0, Math.min(remaining, 2_147_000_000)));
+    return () => window.clearTimeout(timer);
+  }, [membership.data?.active, membership.data?.expiresAt, membership.refetch, qc]);
+  const hasVipAccess = Boolean(
+    membership.data?.active &&
+      membership.data.expiresAt &&
+      new Date(membership.data.expiresAt).getTime() > membershipClock,
+  );
   const data = predictions.data ?? [];
-  const picks = data.filter((pick) => pick.status === 'upcoming');
+  const picks = data.filter((pick) => pick.status === 'upcoming' && (pick.tier === 'free' || hasVipAccess));
   const free = picks.filter((pick) => pick.tier === 'free');
   const vipCount = picks.filter((pick) => pick.tier === 'vip').length;
   const recent = summary.data?.latestResults ?? [];
@@ -262,11 +287,12 @@ function VipPage() {
       {!isLoaded ? <div className="surface mx-auto max-w-xl space-y-4 p-7"><div className="skeleton mx-auto h-8 w-40" /><div className="skeleton h-16 w-full" /><div className="skeleton h-12 w-full" /></div> : !isSignedIn ? <LoginWall /> : <div className="grid gap-6 lg:grid-cols-[.85fr_1.15fr]">
         <section className="space-y-4">
           <div className="surface p-6">
-            <div className="flex items-start justify-between"><div><p className="eyebrow">Abonnement</p><h2 className="display-font mt-2 text-2xl font-bold">VIP mensuel</h2></div><span className={`rounded-full px-3 py-1.5 text-xs font-bold ${membership.data?.active ? 'bg-[hsl(var(--primary)/.12)] text-[hsl(var(--primary))]' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'}`}>{membership.isLoading ? 'Vérification…' : membership.data?.active ? 'Actif' : 'Non actif'}</span></div>
+            <div className="flex items-start justify-between"><div><p className="eyebrow">Abonnement</p><h2 className="display-font mt-2 text-2xl font-bold">VIP mensuel</h2></div><span className={`rounded-full px-3 py-1.5 text-xs font-bold ${membership.data?.active ? 'bg-[hsl(var(--primary)/.12)] text-[hsl(var(--primary))]' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'}`}>{membership.isLoading ? 'Vérification…' : membershipStatusLabel(membership.data?.status)}</span></div>
             <div className="mt-6 flex items-baseline gap-2"><strong className="display-font text-4xl font-bold">{price.toLocaleString('fr-FR')}</strong><span className="font-bold">{currency}</span><span className="text-sm text-[hsl(var(--muted-foreground))]">/ mois</span></div>
-            {membership.data?.active && <div className="mt-3 space-y-1 text-sm text-[hsl(var(--muted-foreground))]">
-              {membership.data.startsAt && <p>Activé le {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(membership.data.startsAt))}.</p>}
-              {membership.data.expiresAt && <p>Valable jusqu’au {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(membership.data.expiresAt))}.</p>}
+            {membership.data?.expiresAt && <div className="mt-3 space-y-1 text-sm text-[hsl(var(--muted-foreground))]">
+              {membership.data.startsAt && <p>Activé le {formatDate(membership.data.startsAt)}.</p>}
+              <p>{membership.data.active ? 'Valable jusqu’au' : 'Expiration le'} {formatDate(membership.data.expiresAt)}.</p>
+              {membership.data.status === 'suspended' && <p className="font-semibold text-[hsl(var(--destructive))]">L’accès VIP est suspendu par l’administration.</p>}
             </div>}
             {membership.isError && <p className="mt-3 text-xs text-[hsl(var(--destructive))]">Le statut de votre abonnement n’a pas pu être chargé. <button onClick={() => membership.refetch()} className="underline">Réessayer</button></p>}
             <div className="mt-6 space-y-3 border-t border-[hsl(var(--border))] pt-5 text-sm"><p className="flex items-center gap-2"><Check size={16} className="text-[hsl(var(--primary))]" /> Accès aux sélections VIP déverrouillées</p><p className="flex items-center gap-2"><Check size={16} className="text-[hsl(var(--primary))]" /> Résultats suivis comme les picks gratuits</p><p className="flex items-center gap-2"><Check size={16} className="text-[hsl(var(--primary))]" /> Aucun prélèvement automatique</p></div>
@@ -310,7 +336,7 @@ const blankPick: PickForm = { homeTeam: '', awayTeam: '', league: '', kickoffAt:
 function AdminPage() {
   const { isSignedIn, isLoaded } = useUser();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'predictions' | 'payments' | 'settings'>('predictions');
+  const [tab, setTab] = useState<'predictions' | 'payments' | 'memberships' | 'settings'>('predictions');
   const [form, setForm] = useState<PickForm>(blankPick);
   const [editing, setEditing] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -322,12 +348,15 @@ function AdminPage() {
   const predictions = useGetAdminPredictions({ query: { queryKey: getGetAdminPredictionsQueryKey(), enabled: Boolean(isSignedIn && summary.data) } });
   const paymentParams = useMemo(() => payFilter === 'pending' ? { status: 'pending' as const } : {}, [payFilter]);
   const payments = useGetAdminPaymentRequests(paymentParams, { query: { queryKey: getGetAdminPaymentRequestsQueryKey(paymentParams), enabled: Boolean(isSignedIn && summary.data) } });
+  const memberships = useGetAdminMemberships({ query: { queryKey: getGetAdminMembershipsQueryKey(), enabled: Boolean(isSignedIn && summary.data) } });
   const instructions = useGetPaymentInstructions({ query: { queryKey: getGetPaymentInstructionsQueryKey(), enabled: Boolean(isSignedIn && summary.data) } });
   const createPick = useCreatePrediction();
   const updatePick = useUpdatePrediction();
   const review = useReviewPaymentRequest();
+  const manageMembership = useManageAdminMembership();
   const updateInstructions = useUpdatePaymentInstructions();
   const [settings, setSettings] = useState({ operator: 'MTN' as 'MTN' | 'ORANGE', walletNumber: '', walletName: '', instructions: '' });
+  const [membershipMonths, setMembershipMonths] = useState(1);
   useEffect(() => {
     if (instructions.data) setSettings({ operator: instructions.data.operator || 'MTN', walletNumber: instructions.data.walletNumber || '', walletName: instructions.data.walletName || '', instructions: instructions.data.instructions || '' });
   }, [instructions.data]);
@@ -362,6 +391,21 @@ function AdminPage() {
       onError: () => setError('La demande n’a pas pu être traitée.'),
     });
   }
+  function changeMembership(userId: string, action: 'extend' | 'suspend' | 'resume') {
+    manageMembership.mutate(
+      { userId, data: action === 'extend' ? { action, months: membershipMonths } : { action } },
+      {
+        onSuccess: () => {
+          setNotice(action === 'extend' ? 'Abonnement prolongé.' : action === 'suspend' ? 'Abonnement suspendu.' : 'Suspension levée.');
+          qc.invalidateQueries({ queryKey: getGetAdminMembershipsQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+          qc.invalidateQueries({ queryKey: getGetPredictionsQueryKey({}) });
+          qc.invalidateQueries({ queryKey: getGetMembershipQueryKey() });
+        },
+        onError: () => setError('La modification de l’abonnement a échoué.'),
+      },
+    );
+  }
   function saveInstructions(e: FormEvent) {
     e.preventDefault(); updateInstructions.mutate({ data: settings }, {
       onSuccess: () => { setNotice('Coordonnées de paiement mises à jour.'); qc.invalidateQueries({ queryKey: getGetPaymentInstructionsQueryKey() }); },
@@ -384,7 +428,7 @@ function AdminPage() {
         })}
       </div>
       <div className="mt-8 flex gap-2 overflow-x-auto border-b border-[hsl(var(--border))] pb-2">
-        {([['predictions', 'Pronostics'], ['payments', 'Paiements'], ['settings', 'Paiement mobile']] as const).map(([key, label]) => <button key={key} onClick={() => setTab(key)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold ${tab === key ? 'bg-[hsl(var(--primary))] text-white' : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'}`} data-testid={`tab-${key}`}>{label}</button>)}
+        {([['predictions', 'Pronostics'], ['payments', 'Paiements'], ['memberships', 'Abonnements VIP'], ['settings', 'Paiement mobile']] as const).map(([key, label]) => <button key={key} onClick={() => setTab(key)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold ${tab === key ? 'bg-[hsl(var(--primary))] text-white' : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'}`} data-testid={`tab-${key}`}>{label}</button>)}
       </div>
       {tab === 'predictions' && <section className="mt-6">
         <div className="mb-4 flex items-center justify-between gap-3"><div><p className="eyebrow">Édition du contenu</p><h2 className="display-font text-xl font-bold">Pronostics</h2></div><button className="btn-primary" onClick={() => { setEditing(null); setForm(blankPick); setShowForm(!showForm); }} data-testid="button-new-prediction">{showForm ? <X size={16} /> : <Sparkles size={16} />}{showForm ? 'Fermer' : 'Nouveau pronostic'}</button></div>
@@ -415,6 +459,35 @@ function AdminPage() {
                 {request.status === 'pending' ? <div className="mt-4 flex flex-col gap-3 border-t border-[hsl(var(--border))] pt-4 sm:flex-row"><input className="input-field flex-1" maxLength={500} placeholder="Note facultative pour le membre" value={adminNote[request.id] || ''} onChange={(e) => setAdminNote({ ...adminNote, [request.id]: e.target.value })} aria-label="Note administrateur" data-testid={`input-payment-note-${request.id}`} /><button className="btn-primary" disabled={review.isPending} onClick={() => decidePayment(request.id, 'approved')} data-testid={`button-approve-${request.id}`}><Check size={15} /> Approuver</button><button className="btn-quiet" disabled={review.isPending} onClick={() => decidePayment(request.id, 'rejected')} data-testid={`button-reject-${request.id}`}>Refuser</button></div>
                   : request.adminNote && <p className="mt-3 text-xs text-[hsl(var(--muted-foreground))]">Note : {request.adminNote}</p>}
               </div>)}</div>}
+      </section>}
+      {tab === 'memberships' && <section className="mt-6">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div><p className="eyebrow">Contrôle d’accès</p><h2 className="display-font text-xl font-bold">Abonnements VIP</h2></div>
+          <label className="text-xs font-semibold">Prolonger de
+            <select className="input-field ml-2 inline-block w-auto" value={membershipMonths} onChange={(e) => setMembershipMonths(Number(e.target.value))} aria-label="Durée de prolongation">
+              {[1, 2, 3, 6, 12].map((months) => <option key={months} value={months}>{months} mois</option>)}
+            </select>
+          </label>
+        </div>
+        {memberships.isLoading ? <div className="surface p-8"><div className="skeleton h-10 w-full" /></div>
+          : memberships.isError ? <ErrorLine message="La liste des abonnements n’est pas accessible." retry={() => memberships.refetch()} />
+            : !memberships.data?.length ? <div className="surface p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Aucun abonnement enregistré pour le moment.</div>
+              : <div className="space-y-3">{memberships.data.map((membership) => <article className="surface flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center" key={membership.userId} data-testid={`admin-membership-${membership.userId}`}>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-3 py-1 text-[10px] font-bold ${membership.status === 'active' ? 'bg-[hsl(var(--primary)/.12)] text-[hsl(var(--primary))]' : membership.status === 'suspended' ? 'bg-[hsl(var(--destructive)/.1)] text-[hsl(var(--destructive))]' : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]'}`}>{membershipStatusLabel(membership.status)}</span>
+                    <span className="text-xs text-[hsl(var(--muted-foreground))]">Compte : {membership.userId}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{membership.startsAt ? `Début : ${formatDate(membership.startsAt)}` : 'Début non défini'} · {membership.expiresAt ? `Expiration : ${formatDate(membership.expiresAt)}` : 'Expiration non définie'}</p>
+                  {membership.status === 'suspended' && <p className="mt-1 text-xs font-semibold text-[hsl(var(--destructive))]">La prolongation ne réactive pas l’accès tant que la suspension n’est pas levée.</p>}
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button className="btn-primary text-xs" disabled={manageMembership.isPending} onClick={() => changeMembership(membership.userId, 'extend')} data-testid={`button-extend-${membership.userId}`}>Prolonger</button>
+                  {membership.status === 'suspended'
+                    ? <button className="btn-quiet text-xs" disabled={manageMembership.isPending} onClick={() => changeMembership(membership.userId, 'resume')} data-testid={`button-resume-${membership.userId}`}>Réactiver</button>
+                    : <button className="btn-quiet text-xs" disabled={manageMembership.isPending} onClick={() => changeMembership(membership.userId, 'suspend')} data-testid={`button-suspend-${membership.userId}`}>Suspendre</button>}
+                </div>
+              </article>)}</div>}
       </section>}
       {tab === 'settings' && <section className="mt-6 grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
         <div><p className="eyebrow">Instructions visibles aux membres</p><h2 className="display-font mt-1 text-2xl font-bold">Coordonnées Mobile Money</h2><p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Ces informations servent uniquement aux paiements manuels. Aucun transfert ou prélèvement n’est initié par Pronostics Foot.</p><div className="mt-5 rounded-xl bg-[hsl(var(--accent)/.2)] p-4 text-xs leading-5"><strong>Prix mensuel : {instructions.data?.monthlyPrice?.toLocaleString('fr-FR') ?? '1 000'} {instructions.data?.currency ?? 'XAF'}</strong><p className="mt-1">Le prix est fixé par la configuration de l’offre et n’est pas modifiable depuis cet écran.</p></div></div>

@@ -66,6 +66,7 @@ export const membershipsTable = pgTable("memberships", {
   userId: text("user_id").primaryKey(),
   startsAt: timestamp("starts_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

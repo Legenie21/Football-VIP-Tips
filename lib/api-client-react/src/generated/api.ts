@@ -25,6 +25,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminMembership,
+  AdminMembershipAction,
   AdminPaymentRequest,
   AdminSummary,
   GetAdminPaymentRequestsParams,
@@ -581,6 +583,196 @@ export function useGetMembership<TData = Awaited<ReturnType<typeof getMembership
 
 
 
+
+export const getGetAdminMembershipsUrl = () => {
+
+
+
+
+  return `/api/admin/memberships`
+}
+
+/**
+ * @summary List VIP memberships for administration
+ */
+export const getAdminMemberships = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminMembership[]> => {
+
+  return customFetch<AdminMembership[]>(getGetAdminMembershipsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminMembershipsQueryKey = () => {
+    return [
+    `/api/admin/memberships`
+    ] as const;
+    }
+
+
+export const getGetAdminMembershipsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminMemberships>>, TError = ErrorType<void>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMemberships>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminMembershipsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminMemberships>>> = ({ signal }) => getAdminMemberships({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminMemberships>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminMembershipsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminMemberships>>>
+export type GetAdminMembershipsQueryError = ErrorType<void>
+
+
+export function useGetAdminMemberships<TData = Awaited<ReturnType<typeof getAdminMemberships>>, TError = ErrorType<void>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMemberships>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminMemberships>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminMemberships>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminMemberships<TData = Awaited<ReturnType<typeof getAdminMemberships>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMemberships>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminMemberships>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminMemberships>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminMemberships<TData = Awaited<ReturnType<typeof getAdminMemberships>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMemberships>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List VIP memberships for administration
+ */
+
+export function useGetAdminMemberships<TData = Awaited<ReturnType<typeof getAdminMemberships>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMemberships>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminMembershipsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getManageAdminMembershipUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/memberships/${userId}`
+}
+
+/**
+ * @summary Extend, suspend, or resume a VIP membership
+ */
+export const manageAdminMembership = async (userId: string,
+    adminMembershipAction: AdminMembershipAction, options?: Parameters<typeof customFetch>[1]): Promise<AdminMembership> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminMembership>(getManageAdminMembershipUrl(userId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminMembershipAction)
+  }
+);}
+
+
+
+
+
+export const getManageAdminMembershipMutationKey = () => ['manageAdminMembership'] as const;
+
+export const getManageAdminMembershipMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof manageAdminMembership>>, TError,ManageAdminMembershipMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof manageAdminMembership>>, TError,ManageAdminMembershipMutationVariables, TContext> => {
+
+const mutationKey = getManageAdminMembershipMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof manageAdminMembership>>, ManageAdminMembershipMutationVariables> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  manageAdminMembership(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ManageAdminMembershipMutationResult = NonNullable<Awaited<ReturnType<typeof manageAdminMembership>>>
+    export type ManageAdminMembershipMutationBody = BodyType<AdminMembershipAction>
+    export type ManageAdminMembershipMutationError = ErrorType<void>
+    export type ManageAdminMembershipMutationVariables = {userId: string;data: BodyType<AdminMembershipAction>}
+
+    /**
+ * @summary Extend, suspend, or resume a VIP membership
+ */
+export const useManageAdminMembership = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof manageAdminMembership>>, TError,ManageAdminMembershipMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof manageAdminMembership>>,
+        TError,
+        ManageAdminMembershipMutationVariables,
+        TContext
+      > => {
+      return useMutation(getManageAdminMembershipMutationOptions(options), queryClient);
+    }
 
 export const getGetMyPaymentRequestsUrl = () => {
 

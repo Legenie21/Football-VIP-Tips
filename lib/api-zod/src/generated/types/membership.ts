@@ -5,13 +5,17 @@
  * API de pronostics, abonnements VIP et paiements Mobile Money manuels.
  * OpenAPI spec version: 0.1.0
  */
+import type { MembershipStatus } from './membershipStatus';
 
 export interface Membership {
   active: boolean;
+  status: MembershipStatus;
   /** @nullable */
   startsAt: Date | null;
   /** @nullable */
   expiresAt: Date | null;
+  /** @nullable */
+  suspendedAt: Date | null;
   monthlyPrice: number;
   currency: string;
 }

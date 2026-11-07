@@ -1,12 +1,16 @@
-import { and, desc, eq, gt, gte, lt, lte } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNull, lt, lte } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   CreatePredictionBody,
   CreatePredictionResponse,
+  GetAdminMembershipsResponse,
   GetAdminPaymentRequestsQueryParams,
   GetAdminPaymentRequestsResponse,
   GetAdminPredictionsResponse,
   GetAdminSummaryResponse,
+  ManageAdminMembershipBody,
+  ManageAdminMembershipParams,
+  ManageAdminMembershipResponse,
   ReviewPaymentRequestBody,
   ReviewPaymentRequestParams,
   ReviewPaymentRequestResponse,
@@ -54,6 +58,29 @@ function addCalendarMonth(date: Date): Date {
   ).getUTCDate();
   next.setUTCDate(Math.min(day, lastDay));
   return next;
+}
+
+function addCalendarMonths(date: Date, months: number): Date {
+  let result = date;
+  for (let i = 0; i < months; i += 1) result = addCalendarMonth(result);
+  return result;
+}
+
+function membershipStatus(
+  membership: typeof membershipsTable.$inferSelect,
+  now = new Date(),
+) {
+  if (membership.suspendedAt) return "suspended" as const;
+  return membership.startsAt &&
+    membership.expiresAt &&
+    membership.startsAt <= now &&
+    membership.expiresAt > now
+    ? ("active" as const)
+    : ("expired" as const);
+}
+
+function toAdminMembership(membership: typeof membershipsTable.$inferSelect) {
+  return { ...membership, status: membershipStatus(membership) };
 }
 
 function toAdminPrediction(row: typeof predictionsTable.$inferSelect) {
@@ -105,7 +132,11 @@ router.get("/admin/summary", requireAdmin, async (_req, res): Promise<void> => {
         .select({ userId: membershipsTable.userId })
         .from(membershipsTable)
         .where(
-          and(lte(membershipsTable.startsAt, now), gt(membershipsTable.expiresAt, now)),
+          and(
+            lte(membershipsTable.startsAt, now),
+            gt(membershipsTable.expiresAt, now),
+            isNull(membershipsTable.suspendedAt),
+          ),
         ),
       db
         .select({ id: paymentRequestsTable.id })
@@ -131,6 +162,79 @@ router.get("/admin/summary", requireAdmin, async (_req, res): Promise<void> => {
     }),
   );
 });
+
+router.get("/admin/memberships", requireAdmin, async (_req, res): Promise<void> => {
+  const memberships = await db
+    .select()
+    .from(membershipsTable)
+    .orderBy(desc(membershipsTable.updatedAt));
+  res.json(
+    GetAdminMembershipsResponse.parse(memberships.map(toAdminMembership)),
+  );
+});
+
+router.patch(
+  "/admin/memberships/:userId",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = ManageAdminMembershipParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const parsed = ManageAdminMembershipBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [membership] = await tx
+        .select()
+        .from(membershipsTable)
+        .where(eq(membershipsTable.userId, params.data.userId))
+        .for("update");
+      if (!membership) return null;
+
+      const now = new Date();
+      let updates: Partial<typeof membershipsTable.$inferInsert>;
+      if (parsed.data.action === "suspend") {
+        updates = { suspendedAt: now, updatedAt: now };
+      } else if (parsed.data.action === "resume") {
+        updates = { suspendedAt: null, updatedAt: now };
+      } else {
+        const baseExpiry =
+          membership.expiresAt && membership.expiresAt > now
+            ? membership.expiresAt
+            : now;
+        const startsAt =
+          membership.startsAt &&
+          membership.expiresAt &&
+          membership.expiresAt > now
+            ? membership.startsAt
+            : now;
+        updates = {
+          startsAt,
+          expiresAt: addCalendarMonths(baseExpiry, parsed.data.months ?? 1),
+          updatedAt: now,
+        };
+      }
+
+      const [updated] = await tx
+        .update(membershipsTable)
+        .set(updates)
+        .where(eq(membershipsTable.userId, membership.userId))
+        .returning();
+      return updated;
+    });
+
+    if (!result) {
+      res.status(404).json({ error: "Membership not found" });
+      return;
+    }
+    res.json(ManageAdminMembershipResponse.parse(toAdminMembership(result)));
+  },
+);
 
 router.get("/admin/predictions", requireAdmin, async (_req, res): Promise<void> => {
   const predictions = await db

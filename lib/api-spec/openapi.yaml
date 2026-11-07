@@ -95,6 +95,61 @@ paths:
                 $ref: "#/components/schemas/Membership"
         "401":
           description: Sign-in required
+  /admin/memberships:
+    get:
+      operationId: getAdminMemberships
+      tags: [admin]
+      summary: List VIP memberships for administration
+      security:
+        - clerkSession: []
+      responses:
+        "200":
+          description: VIP memberships and current access status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminMembership"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
+  /admin/memberships/{userId}:
+    patch:
+      operationId: manageAdminMembership
+      tags: [admin]
+      summary: Extend, suspend, or resume a VIP membership
+      security:
+        - clerkSession: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminMembershipAction"
+      responses:
+        "200":
+          description: Updated VIP membership
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMembership"
+        "400":
+          description: Invalid membership action
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
+        "404":
+          description: Membership not found
   /payment-requests:
     get:
       operationId: getMyPaymentRequests
@@ -399,11 +454,29 @@ components:
       type: object
       properties:
         active: { type: boolean }
+        status: { type: string, enum: [active, expired, suspended, inactive] }
         startsAt: { type: ["string", "null"], format: date-time }
         expiresAt: { type: ["string", "null"], format: date-time }
+        suspendedAt: { type: ["string", "null"], format: date-time }
         monthlyPrice: { type: integer }
         currency: { type: string }
-      required: [active, startsAt, expiresAt, monthlyPrice, currency]
+      required: [active, status, startsAt, expiresAt, suspendedAt, monthlyPrice, currency]
+    AdminMembership:
+      type: object
+      properties:
+        userId: { type: string }
+        startsAt: { type: ["string", "null"], format: date-time }
+        expiresAt: { type: ["string", "null"], format: date-time }
+        suspendedAt: { type: ["string", "null"], format: date-time }
+        updatedAt: { type: string, format: date-time }
+        status: { type: string, enum: [active, expired, suspended] }
+      required: [userId, startsAt, expiresAt, suspendedAt, updatedAt, status]
+    AdminMembershipAction:
+      type: object
+      properties:
+        action: { type: string, enum: [extend, suspend, resume] }
+        months: { type: integer, minimum: 1, maximum: 12 }
+      required: [action]
     PaymentInstructions:
       type: object
       properties:

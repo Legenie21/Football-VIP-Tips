@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, gt, inArray, lt, lte } from "drizzle-orm";
+import { and, desc, eq, gte, gt, inArray, isNull, lt, lte } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import {
@@ -35,8 +35,7 @@ function cameroonDayBounds(now = new Date()): [Date, Date] {
   return [start, new Date(start.getTime() + 24 * 60 * 60 * 1000)];
 }
 
-function toPrediction(row: typeof predictionsTable.$inferSelect, activeVip: boolean) {
-  const locked = row.tier === "vip" && !activeVip;
+function toPrediction(row: typeof predictionsTable.$inferSelect) {
   return {
     id: row.id,
     homeTeam: row.homeTeam,
@@ -44,13 +43,13 @@ function toPrediction(row: typeof predictionsTable.$inferSelect, activeVip: bool
     league: row.league,
     kickoffAt: row.kickoffAt,
     tier: row.tier,
-    market: locked ? null : row.market,
-    selection: locked ? null : row.selection,
-    odds: locked ? null : row.odds,
-    confidence: locked ? null : row.confidence,
-    analysis: locked ? null : row.analysis,
-    status: locked ? "upcoming" : row.status,
-    locked,
+    market: row.market,
+    selection: row.selection,
+    odds: row.odds,
+    confidence: row.confidence,
+    analysis: row.analysis,
+    status: row.status,
+    locked: false,
     createdAt: row.createdAt,
   };
 }
@@ -66,6 +65,7 @@ async function hasActiveVip(userId: string | null | undefined): Promise<boolean>
         eq(membershipsTable.userId, userId),
         lte(membershipsTable.startsAt, now),
         gt(membershipsTable.expiresAt, now),
+        isNull(membershipsTable.suspendedAt),
       ),
     )
     .limit(1);
@@ -144,7 +144,7 @@ router.get("/summary", async (_req, res): Promise<void> => {
     vipTodayCount: vipTodayRows.length,
     settledCount: settledRows.length,
     hitRate: settledRows.length ? (wins.length / settledRows.length) * 100 : 0,
-    latestResults: latestRows.map((row) => toPrediction(row, false)),
+    latestResults: latestRows.map(toPrediction),
   };
   res.json(GetSummaryResponse.parse(data));
 });
@@ -157,7 +157,15 @@ router.get("/predictions", async (req, res): Promise<void> => {
   }
 
   const conditions = [];
-  if (parsedQuery.data.tier) {
+  const activeVip = await hasActiveVip(getAuth(req).userId);
+  if (parsedQuery.data.tier === "vip" && !activeVip) {
+    res.status(403).json({ error: "An active VIP membership is required" });
+    return;
+  }
+
+  if (!activeVip) {
+    conditions.push(eq(predictionsTable.tier, "free"));
+  } else if (parsedQuery.data.tier) {
     conditions.push(eq(predictionsTable.tier, parsedQuery.data.tier));
   }
   if (parsedQuery.data.status) {
@@ -169,10 +177,9 @@ router.get("/predictions", async (req, res): Promise<void> => {
     .from(predictionsTable)
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(predictionsTable.kickoffAt));
-  const activeVip = await hasActiveVip(getAuth(req).userId);
   res.json(
     GetPredictionsResponse.parse(
-      predictions.map((prediction) => toPrediction(prediction, activeVip)),
+      predictions.map(toPrediction),
     ),
   );
 });
@@ -188,17 +195,28 @@ router.get("/membership", requireSignedIn, async (req, res): Promise<void> => {
     .from(membershipsTable)
     .where(eq(membershipsTable.userId, userId))
     .limit(1);
+  const now = new Date();
   const active = Boolean(
     membership?.startsAt &&
       membership.expiresAt &&
-      membership.startsAt <= new Date() &&
-      membership.expiresAt > new Date(),
+      !membership.suspendedAt &&
+      membership.startsAt <= now &&
+      membership.expiresAt > now,
   );
+  const status = !membership
+    ? "inactive"
+    : membership.suspendedAt
+      ? "suspended"
+      : active
+        ? "active"
+        : "expired";
   res.json(
     GetMembershipResponse.parse({
       active,
+      status,
       startsAt: membership?.startsAt ?? null,
       expiresAt: membership?.expiresAt ?? null,
+      suspendedAt: membership?.suspendedAt ?? null,
       monthlyPrice,
       currency,
     }),

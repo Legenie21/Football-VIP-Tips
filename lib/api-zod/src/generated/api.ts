@@ -91,10 +91,55 @@ export const GetPaymentInstructionsResponse = zod.object({
  */
 export const GetMembershipResponse = zod.object({
   "active": zod.boolean(),
+  "status": zod.enum(['active', 'expired', 'suspended', 'inactive']),
   "startsAt": zod.coerce.date().nullable(),
   "expiresAt": zod.coerce.date().nullable(),
+  "suspendedAt": zod.coerce.date().nullable(),
   "monthlyPrice": zod.number().int(),
   "currency": zod.string()
+})
+
+
+/**
+ * @summary List VIP memberships for administration
+ */
+export const GetAdminMembershipsResponseItem = zod.object({
+  "userId": zod.string(),
+  "startsAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "suspendedAt": zod.coerce.date().nullable(),
+  "updatedAt": zod.coerce.date(),
+  "status": zod.enum(['active', 'expired', 'suspended'])
+})
+export const GetAdminMembershipsResponse = zod.array(GetAdminMembershipsResponseItem)
+
+
+/**
+ * @summary Extend, suspend, or resume a VIP membership
+ */
+
+
+
+export const ManageAdminMembershipParams = zod.object({
+  "userId": zod.coerce.string().min(1)
+})
+
+export const manageAdminMembershipBodyMonthsMax = 12;
+
+
+
+export const ManageAdminMembershipBody = zod.object({
+  "action": zod.enum(['extend', 'suspend', 'resume']),
+  "months": zod.number().int().min(1).max(manageAdminMembershipBodyMonthsMax).optional()
+})
+
+export const ManageAdminMembershipResponse = zod.object({
+  "userId": zod.string(),
+  "startsAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "suspendedAt": zod.coerce.date().nullable(),
+  "updatedAt": zod.coerce.date(),
+  "status": zod.enum(['active', 'expired', 'suspended'])
 })
 
 
