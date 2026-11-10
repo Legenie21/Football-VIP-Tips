@@ -1,6 +1,5 @@
 import { and, desc, eq, gte, gt, inArray, isNull, lt, lte } from "drizzle-orm";
 import { Router, type IRouter } from "express";
-import { getAuth } from "@clerk/express";
 import {
   CreatePaymentRequestBody,
   CreatePaymentRequestResponse,
@@ -18,7 +17,7 @@ import {
   paymentRequestsTable,
   predictionsTable,
 } from "@workspace/db";
-import { requireSignedIn } from "../middlewares/auth";
+import { optionalSignedIn, requireSignedIn } from "../middlewares/auth";
 
 const router: IRouter = Router();
 const monthlyPrice = 1000;
@@ -149,7 +148,7 @@ router.get("/summary", async (_req, res): Promise<void> => {
   res.json(GetSummaryResponse.parse(data));
 });
 
-router.get("/predictions", async (req, res): Promise<void> => {
+router.get("/predictions", optionalSignedIn, async (req, res): Promise<void> => {
   const parsedQuery = GetPredictionsQueryParams.safeParse(req.query);
   if (!parsedQuery.success) {
     res.status(400).json({ error: parsedQuery.error.message });
@@ -157,7 +156,7 @@ router.get("/predictions", async (req, res): Promise<void> => {
   }
 
   const conditions = [];
-  const activeVip = await hasActiveVip(getAuth(req).userId);
+  const activeVip = await hasActiveVip(res.locals.userId as string | undefined);
   if (parsedQuery.data.tier === "vip" && !activeVip) {
     res.status(403).json({ error: "An active VIP membership is required" });
     return;

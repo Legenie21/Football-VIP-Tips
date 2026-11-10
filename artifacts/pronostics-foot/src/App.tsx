@@ -21,6 +21,7 @@ import { Route, Switch, Link, Router as WouterRouter, Redirect, useLocation } fr
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Auth0AuthAdapter, auth0Configured, ClerkAuthAdapter, useAppAuth } from '@/lib/auth-provider';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -71,8 +72,7 @@ function Notice({ message, onClose }: { message: string; onClose: () => void }) 
 }
 
 function SiteHeader() {
-  const { isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
+  const { isSignedIn, user, signOut } = useAppAuth();
   const [open, setOpen] = useState(false);
   return <header className="relative z-20 border-b border-[hsl(var(--border))] bg-[hsl(var(--background)/.94)]">
     <div className="page-shell flex h-[74px] items-center justify-between">
@@ -86,16 +86,16 @@ function SiteHeader() {
         <Link href="/vip" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-vip-nav">Espace VIP</Link>
         {isSignedIn && <Link href="/admin" onClick={() => setOpen(false)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-admin">Administration</Link>}
         {isSignedIn
-          ? <button onClick={() => signOut({ redirectUrl: basePath || '/' })} className="btn-quiet text-sm" data-testid="button-sign-out"><LogOut size={15} /> Déconnexion</button>
+          ? <button onClick={() => void signOut()} className="btn-quiet text-sm" data-testid="button-sign-out"><LogOut size={15} /> Déconnexion</button>
           : <Link href="/sign-in" className="btn-primary text-sm" data-testid="link-sign-in">Connexion <ArrowRight size={15} /></Link>}
       </nav>
       <button className="rounded-lg p-2 md:hidden" onClick={() => setOpen(!open)} aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={open} data-testid="button-menu">
         {open ? <X size={21} /> : <Menu size={21} />}
       </button>
       <div className="hidden items-center gap-3 md:flex">
-        {isSignedIn && <span className="max-w-[130px] truncate text-xs text-[hsl(var(--muted-foreground))]">{user?.firstName || user?.emailAddresses[0]?.emailAddress}</span>}
+        {isSignedIn && <span className="max-w-[130px] truncate text-xs text-[hsl(var(--muted-foreground))]">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress || user?.email || user?.phone_number}</span>}
         {isSignedIn
-          ? <button onClick={() => signOut({ redirectUrl: basePath || '/' })} className="btn-quiet text-sm" data-testid="button-sign-out-desktop"><LogOut size={15} /> Sortir</button>
+          ? <button onClick={() => void signOut()} className="btn-quiet text-sm" data-testid="button-sign-out-desktop"><LogOut size={15} /> Sortir</button>
           : <Link href="/sign-in" className="btn-primary text-sm" data-testid="link-sign-in-desktop">Connexion <ArrowRight size={15} /></Link>}
       </div>
     </div>
@@ -169,7 +169,7 @@ function Home() {
   const qc = useQueryClient();
   const summary = useGetSummary({ query: { queryKey: getGetSummaryQueryKey() } });
   const predictions = useGetPredictions({}, { query: { queryKey: getGetPredictionsQueryKey({}) } });
-  const { user } = useUser();
+  const { user } = useAppAuth();
   const membership = useGetMembership({ query: { queryKey: getGetMembershipQueryKey(), enabled: Boolean(user) } });
   const [membershipClock, setMembershipClock] = useState(() => Date.now());
   useEffect(() => {
@@ -250,12 +250,13 @@ function Home() {
   </PageFrame>;
 }
 
-function LoginWall({ title = 'Connectez-vous à votre espace' }: { title?: string }) {
-  return <div className="surface mx-auto max-w-lg p-8 text-center"><LockKeyhole className="mx-auto text-[hsl(var(--primary))]" size={25} /><h2 className="display-font mt-4 text-xl font-bold">{title}</h2><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Votre compte permet de suivre votre demande et l’état de votre abonnement.</p><Link href="/sign-in" className="btn-primary mt-5" data-testid="link-sign-in-required">Se connecter <ArrowRight size={16} /></Link><p className="mt-4 text-xs text-[hsl(var(--muted-foreground))]">Nouveau ici ? <Link href="/sign-up" className="font-bold text-[hsl(var(--primary))]" data-testid="link-sign-up-required">Créer un compte</Link></p></div>;
+function LoginWall({ title = 'Connectez-vous à votre espace', redirectTo }: { title?: string; redirectTo?: string }) {
+  const signInPath = redirectTo ? `/sign-in?redirect=${encodeURIComponent(redirectTo)}` : '/sign-in';
+  return <div className="surface mx-auto max-w-lg p-8 text-center"><LockKeyhole className="mx-auto text-[hsl(var(--primary))]" size={25} /><h2 className="display-font mt-4 text-xl font-bold">{title}</h2><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Votre compte permet de suivre votre demande et l’état de votre abonnement.</p><Link href={signInPath} className="btn-primary mt-5" data-testid="link-sign-in-required">Se connecter <ArrowRight size={16} /></Link><p className="mt-4 text-xs text-[hsl(var(--muted-foreground))]">Nouveau ici ? <Link href="/sign-up" className="font-bold text-[hsl(var(--primary))]" data-testid="link-sign-up-required">Créer un compte</Link></p></div>;
 }
 
 function VipPage() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded } = useAppAuth();
   const [operator, setOperator] = useState<'MTN' | 'ORANGE'>('MTN');
   const [reference, setReference] = useState('');
   const [notice, setNotice] = useState('');
@@ -334,7 +335,7 @@ function VipPage() {
 type PickForm = { homeTeam: string; awayTeam: string; league: string; kickoffAt: string; tier: 'free' | 'vip'; market: string; selection: string; odds: string; confidence: string; analysis: string };
 const blankPick: PickForm = { homeTeam: '', awayTeam: '', league: '', kickoffAt: '', tier: 'free', market: '', selection: '', odds: '', confidence: '', analysis: '' };
 function AdminPage() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded } = useAppAuth();
   const qc = useQueryClient();
   const [tab, setTab] = useState<'predictions' | 'payments' | 'memberships' | 'settings'>('predictions');
   const [form, setForm] = useState<PickForm>(blankPick);
@@ -413,7 +414,7 @@ function AdminPage() {
     });
   }
   if (!isLoaded) return <PageFrame><main className="page-shell py-16"><div className="skeleton mx-auto h-52 max-w-3xl" /></main></PageFrame>;
-  if (!isSignedIn) return <PageFrame><main className="page-shell py-16"><LoginWall title="Administration protégée" /></main></PageFrame>;
+  if (!isSignedIn) return <PageFrame><main className="page-shell py-16"><LoginWall title="Administration protégée" redirectTo="/admin" /></main></PageFrame>;
   if (summary.isLoading) return <PageFrame><main className="page-shell py-14"><p className="eyebrow">Espace privé</p><div className="skeleton mt-4 h-44 max-w-3xl" /></main></PageFrame>;
   if (summary.isError || !summary.data) return <PageFrame><main className="page-shell py-16"><div className="mx-auto max-w-xl"><div className="surface p-7 text-center"><ShieldCheck size={25} className="mx-auto text-[hsl(var(--muted-foreground))]" /><h1 className="display-font mt-3 text-xl font-bold">Accès administrateur indisponible</h1><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{summary.isError ? 'Votre session ne dispose pas des droits d’administration, ou le service est temporairement indisponible.' : 'Vérification des droits en cours.'}</p><button className="btn-quiet mt-5" onClick={() => summary.refetch()} data-testid="button-admin-retry">Réessayer</button></div></div></main></PageFrame>;
   const busy = createPick.isPending || updatePick.isPending;
@@ -505,13 +506,33 @@ function AdminPage() {
 }
 
 function AuthPage({ signup = false }: { signup?: boolean }) {
+  const { error, isLoaded, signIn } = useAppAuth();
+  const [authError, setAuthError] = useState('');
+  const returnTo = new URLSearchParams(window.location.search).get('redirect') || '/';
+  async function startAuth(method: 'email' | 'sms') {
+    setAuthError('');
+    try {
+      await signIn(method, returnTo);
+    } catch {
+      setAuthError('La connexion n’a pas pu démarrer. Réessayez dans un instant.');
+    }
+  }
   return <div className="min-h-[100dvh] bg-[hsl(var(--background))]">
     <div className="page-shell flex min-h-[100dvh] flex-col justify-center py-8">
       <div className="mb-6 text-center"><Link href="/" className="inline-flex items-center gap-3" data-testid="link-auth-home"><span className="grid h-10 w-10 place-items-center rounded-[14px] bg-[hsl(var(--primary))] text-white"><Trophy size={21} /></span><span className="display-font text-left text-sm font-bold">Pronostics Foot<span className="block font-sans text-[10px] font-medium text-[hsl(var(--muted-foreground))]">Le football, sans détour</span></span></Link><p className="mt-4 text-xs text-[hsl(var(--muted-foreground))]">Votre passion du jeu, suivie avec transparence.</p></div>
-      <div className="mx-auto w-full max-w-[440px] rounded-[24px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-2 shadow-[var(--shadow-md)]">
-        {signup ? <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-          : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />}
-      </div>
+      {auth0Configured
+        ? <section className="surface mx-auto w-full max-w-[440px] space-y-3 p-6 sm:p-8">
+            <h1 className="display-font text-center text-xl font-bold">{signup ? 'Créer votre compte' : 'Se connecter'}</h1>
+            <p className="text-center text-sm text-[hsl(var(--muted-foreground))]">Choisissez comment recevoir votre code de vérification.</p>
+            {(error || authError) && <p role="alert" className="rounded-xl bg-[hsl(var(--destructive)/.08)] p-3 text-sm text-[hsl(var(--destructive))]">{error || authError}</p>}
+            <button className="btn-primary w-full justify-center" disabled={!isLoaded} onClick={() => void startAuth('email')} data-testid="button-auth-email">Continuer avec e-mail <ArrowRight size={16} /></button>
+            <button className="btn-quiet w-full justify-center" disabled={!isLoaded} onClick={() => void startAuth('sms')} data-testid="button-auth-phone">Continuer avec téléphone <ArrowRight size={16} /></button>
+            <p className="pt-2 text-center text-xs leading-5 text-[hsl(var(--muted-foreground))]">Un compte est créé après vérification du code reçu par e-mail ou SMS.</p>
+          </section>
+        : <div className="mx-auto w-full max-w-[440px] rounded-[24px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-2 shadow-[var(--shadow-md)]">
+            {signup ? <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+              : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />}
+          </div>}
       <p className="mx-auto mt-5 max-w-md text-center text-[10px] leading-4 text-[hsl(var(--muted-foreground))]">Les pronostics ne garantissent aucun résultat. Jouez de manière responsable.</p>
     </div>
   </div>;
@@ -557,15 +578,19 @@ function ClerkApp() {
     routerPush={(to) => setLocation(stripBase(to))}
     routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
   >
-    <ClerkCacheSync /><Router />
+    <ClerkAuthAdapter><ClerkCacheSync /><Router /></ClerkAuthAdapter>
   </ClerkProvider>;
 }
 
+function Auth0App() {
+  return <Auth0AuthAdapter><Router /></Auth0AuthAdapter>;
+}
+
 function App() {
-  if (!clerkPubKey) {
+  if (!auth0Configured && !clerkPubKey) {
     return <div className="grid min-h-[100dvh] place-items-center p-6"><div className="surface max-w-lg p-8 text-center"><h1 className="display-font text-xl font-bold">Connexion momentanément indisponible</h1><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">La configuration de l’espace membre n’est pas disponible.</p><a href={basePath || '/'} className="btn-primary mt-5">Retour aux pronostics</a></div></div>;
   }
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}><ClerkApp /></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}>{auth0Configured ? <Auth0App /> : <ClerkApp />}</WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
 }
 
 export default App;

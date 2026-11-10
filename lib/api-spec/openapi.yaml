@@ -3,7 +3,7 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API de pronostics, abonnements VIP et paiements Mobile Money manuels.
+  description: API de pronostics, abonnements VIP et paiements Mobile Money manuels. Les sessions peuvent être authentifiées par Clerk ou Auth0.
 servers:
   - url: /api
     description: Base API path
@@ -67,6 +67,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Prediction"
+        "403":
+          description: An active VIP membership is required for VIP-only queries
   /payment-instructions:
     get:
       operationId: getPaymentInstructions
@@ -86,6 +88,7 @@ paths:
       summary: Get the current user's membership
       security:
         - clerkSession: []
+        - auth0Bearer: []
       responses:
         "200":
           description: Membership status
@@ -102,6 +105,7 @@ paths:
       summary: List VIP memberships for administration
       security:
         - clerkSession: []
+        - auth0Bearer: []
       responses:
         "200":
           description: VIP memberships and current access status
@@ -122,6 +126,7 @@ paths:
       summary: Extend, suspend, or resume a VIP membership
       security:
         - clerkSession: []
+        - auth0Bearer: []
       parameters:
         - name: userId
           in: path
@@ -157,6 +162,7 @@ paths:
       summary: List the current user's payment requests
       security:
         - clerkSession: []
+        - auth0Bearer: []
       responses:
         "200":
           description: Payment requests
@@ -174,6 +180,7 @@ paths:
       summary: Submit a Mobile Money transaction reference
       security:
         - clerkSession: []
+        - auth0Bearer: []
       requestBody:
         required: true
         content:
@@ -200,6 +207,7 @@ paths:
       summary: Get administrator dashboard summary
       security:
         - clerkSession: []
+        - auth0Bearer: []
       responses:
         "200":
           description: Admin summary
@@ -218,6 +226,7 @@ paths:
       summary: List all predictions for administration
       security:
         - clerkSession: []
+        - auth0Bearer: []
       responses:
         "200":
           description: All predictions
@@ -237,6 +246,7 @@ paths:
       summary: Publish a prediction
       security:
         - clerkSession: []
+        - auth0Bearer: []
       requestBody:
         required: true
         content:
@@ -263,6 +273,7 @@ paths:
       summary: Edit a prediction or publish its result
       security:
         - clerkSession: []
+        - auth0Bearer: []
       parameters:
         - name: id
           in: path
@@ -297,6 +308,7 @@ paths:
       summary: List Mobile Money payment requests for review
       security:
         - clerkSession: []
+        - auth0Bearer: []
       parameters:
         - name: status
           in: query
@@ -323,6 +335,7 @@ paths:
       summary: Approve or reject a payment request
       security:
         - clerkSession: []
+        - auth0Bearer: []
       parameters:
         - name: id
           in: path
@@ -357,6 +370,7 @@ paths:
       summary: Configure the Mobile Money payment details
       security:
         - clerkSession: []
+        - auth0Bearer: []
       requestBody:
         required: true
         content:
@@ -382,6 +396,10 @@ components:
       type: apiKey
       in: cookie
       name: __session
+    auth0Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     HealthStatus:
       type: object
