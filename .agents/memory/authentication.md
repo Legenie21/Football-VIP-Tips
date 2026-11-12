@@ -20,3 +20,9 @@ L’inscription demandée recueille le nom, le prénom, l’e-mail, le numéro d
 **Why:** exigence explicite du propriétaire.
 
 **How to apply:** distinguer la collecte du téléphone comme information de profil de son utilisation comme identifiant de connexion.
+
+Le propriétaire exige les deux modes de connexion et indique qu’il n’y a encore aucun compte existant.
+
+**Why:** il a confirmé vouloir la connexion par e-mail ou téléphone avec mot de passe malgré la limite du Clerk géré par Replit.
+
+**How to apply:** une configuration d’authentification différente est autorisée pour répondre à cette exigence ; vérifier à nouveau l’absence de comptes avant toute opération destructive.
