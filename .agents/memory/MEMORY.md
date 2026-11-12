@@ -1,0 +1,1 @@
+- [Authentification du site existant](authentication.md) — le propriétaire confirme utiliser Clerk ; préserver ses comptes avant toute modification.
