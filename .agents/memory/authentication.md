@@ -3,7 +3,7 @@ name: Authentification du site existant
 description: Fournisseur réellement utilisé et modes de connexion demandés.
 ---
 
-Le propriétaire confirme que son site existant utilise Clerk, même si le dépôt contient aussi du code Auth0.
+Le propriétaire confirme que son site existant utilise Clerk configuré automatiquement par Replit, même si le dépôt contient aussi du code Auth0.
 
 **Why:** le propriétaire a identifié Clerk comme le service qui gère actuellement ses comptes.
 
@@ -14,3 +14,9 @@ La connexion demandée est soit par e-mail et mot de passe, soit par numéro de 
 **Why:** exigence explicite du propriétaire, distincte d’une connexion par code SMS.
 
 **How to apply:** ne pas remplacer le mot de passe demandé par un code à usage unique.
+
+L’inscription demandée recueille le nom, le prénom, l’e-mail, le numéro de téléphone et le mot de passe avant la connexion.
+
+**Why:** exigence explicite du propriétaire.
+
+**How to apply:** distinguer la collecte du téléphone comme information de profil de son utilisation comme identifiant de connexion.
