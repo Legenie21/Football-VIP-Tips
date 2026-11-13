@@ -43,3 +43,6 @@ _Populate as you build — sharp edges, "always run X before Y" rules._
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Future Cybrancee connection: `docs/cybrancee-configuration.md` and
+  `config/cybrancee.env.example`. Configuration preparation only; no live DB/SMTP
+  connection or direct authentication flows have been implemented or enabled.
