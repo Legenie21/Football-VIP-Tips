@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Maestro Tips VIP"
+description = "Application de pronostics football Maestro Tips VIP, restaurée depuis le dépôt du propriétaire avec ses pages publiques, VIP et administration existantes."
+version = "1.0.0"
+id = "artifacts/pronostics-foot"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23927
+
+[services.development]
+run = "pnpm --filter @workspace/pronostics-foot run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pronostics-foot", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/pronostics-foot/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23927"
+BASE_PATH = "/"

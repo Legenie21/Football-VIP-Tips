@@ -1,1 +1,2 @@
-- [Authentification du site existant](authentication.md) — le propriétaire confirme utiliser Clerk ; préserver ses comptes avant toute modification.
+- [Authentification du site](authentication.md) — comptes directs autorisés ; OTP e-mail à l’inscription et à la récupération, jamais à la connexion.
+- [Périmètre Maestro Tips VIP](product-scope.md) — ordre de travail, hébergement réel requis, réutilisation et absence de publication sans accord.

@@ -11,8 +11,10 @@
 **Il s'agit d'une préparation de configuration, pas d'une authentification
 opérationnelle.** Aucun compte n'est créé, aucune connexion externe n'est ouverte,
 aucun e-mail n'est envoyé et aucune donnée existante n'est modifiée.
-Le dépôt GitHub du site n'est ni importé ni modifié par cette préparation locale.
+Le véritable site a depuis été importé localement depuis le dépôt GitHub :
+voir `docs/restauration-site.md`. Aucune modification n'a été poussée sur GitHub.
 Les paramètres ne sont pas encore raccordés aux écrans ou routes de connexion.
+Les anciens modules Clerk/Auth0 sont conservés, mais ne sont pas activés.
 
 ## Fonctionnement retenu pour le futur développement
 
@@ -36,7 +38,10 @@ l'utilisateur, le mot de passe et les instructions TLS. Le modèle accepte
 `mysql` (également pour MariaDB) ou `postgres` ; il ne présume pas de votre offre.
 Ces deux configurations sont reconnues par le validateur ; les pilotes,
 requêtes et migrations correspondants restent à implémenter après le choix
-du moteur. Le PostgreSQL du squelette actuel n'est pas remplacé.
+du moteur. Le site importé utilise concrètement PostgreSQL (`pg` et les schémas
+Drizzle `pgTable`). MySQL/MariaDB n'est pas encore compatible avec ses schémas
+ou ses requêtes : si votre offre n'inclut que MySQL/MariaDB, une adaptation
+explicite sera nécessaire. Aucun moteur n'est présumé pour votre offre Cybrancee.
 
 Ne pas modifier `DATABASE_URL` pour cette préparation : les paramètres
 `CYBRANCEE_DB_*` sont séparés de la base éventuellement utilisée actuellement.
@@ -87,7 +92,9 @@ des variables de l'hébergement ; ne pas copier de vrais identifiants dans ce mo
 
 ## Étapes restant nécessaires avant la mise en service
 
-- Raccorder le code du site et implémenter les routes et écrans d'authentification.
+- Confirmer le moteur Cybrancee et les possibilités de connexion réseau/TLS.
+- Raccorder les routes métier importées à cette base, puis implémenter les routes
+  et écrans d'authentification directe.
 - Installer le pilote correspondant au moteur choisi et créer les migrations
   pour les utilisateurs, sessions, challenges OTP et limites de requêtes.
 - Hacher les mots de passe avec un algorithme adapté (scrypt ou Argon2id).
@@ -101,5 +108,5 @@ des variables de l'hébergement ; ne pas copier de vrais identifiants dans ce mo
   rotation à la connexion et révocation après réinitialisation du mot de passe.
 - Brancher un vrai transport SMTP ; ne pas simuler l'envoi ni afficher les codes
   dans les journaux en cas d'échec.
-- Tester les deux connexions et les deux parcours OTP avant de désactiver
-  définitivement l'ancien fournisseur sur le site.
+- Tester les deux connexions et les deux parcours OTP avant toute mise en service.
+  Les fournisseurs historiques sont déjà inactifs dans cette restauration.

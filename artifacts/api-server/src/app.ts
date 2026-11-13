@@ -1,5 +1,4 @@
 import express, { type Express } from "express";
-import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -25,9 +24,11 @@ app.use(
     },
   }),
 );
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Keep the imported legacy auth modules on disk without activating a provider.
+// Frontend and API share the proxy origin; credentialed wildcard CORS is unnecessary.
+app.disable("x-powered-by");
+app.use(express.json({ limit: "32kb" }));
+app.use(express.urlencoded({ extended: false, limit: "32kb" }));
 
 app.use("/api", router);
 

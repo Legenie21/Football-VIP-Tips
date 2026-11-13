@@ -46,3 +46,6 @@ _Populate as you build — sharp edges, "always run X before Y" rules._
 - Future Cybrancee connection: `docs/cybrancee-configuration.md` and
   `config/cybrancee.env.example`. Configuration preparation only; no live DB/SMTP
   connection or direct authentication flows have been implemented or enabled.
+- Imported site provenance, preservation and current integration stop:
+  `docs/restauration-site.md`. Do not connect business routes to an incidental
+  `DATABASE_URL`; wait for the actual Cybrancee engine and SMTP details.
