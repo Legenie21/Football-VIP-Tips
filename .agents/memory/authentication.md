@@ -3,11 +3,11 @@ name: Authentification du site existant
 description: Fournisseur réellement utilisé et modes de connexion demandés.
 ---
 
-Le propriétaire confirme que son site existant utilise Clerk configuré automatiquement par Replit, même si le dépôt contient aussi du code Auth0.
+Le site existant utilisait Clerk configuré automatiquement par Replit, même si le dépôt contient aussi du code Auth0. Le propriétaire a explicitement autorisé son remplacement par des comptes gérés directement par le site.
 
-**Why:** le propriétaire a identifié Clerk comme le service qui gère actuellement ses comptes.
+**Why:** le propriétaire a confirmé « Oui, gérer les comptes directement » après explication du remplacement de Clerk.
 
-**How to apply:** préserver les comptes existants ; ne pas activer Auth0 ou remplacer le fournisseur sans accord.
+**How to apply:** mettre en place la gestion directe des comptes pour satisfaire les exigences ci-dessous ; ne pas activer Auth0 à la place.
 
 La connexion demandée est soit par e-mail et mot de passe, soit par numéro de téléphone précédé de l’indicatif du pays et mot de passe. L’e-mail doit être vérifié à l’inscription par un code OTP. Un OTP par e-mail est également nécessaire pour réinitialiser un mot de passe oublié. Aucun OTP n’est demandé à la connexion et aucune vérification SMS n’est demandée.
 
