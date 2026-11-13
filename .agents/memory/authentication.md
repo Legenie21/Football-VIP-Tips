@@ -9,11 +9,11 @@ Le propriétaire confirme que son site existant utilise Clerk configuré automat
 
 **How to apply:** préserver les comptes existants ; ne pas activer Auth0 ou remplacer le fournisseur sans accord.
 
-La connexion demandée est soit par e-mail et mot de passe, soit par numéro de téléphone précédé de l’indicatif du pays et mot de passe. Aucun OTP ne doit être demandé à l’inscription ou à la connexion. Un OTP est autorisé uniquement par e-mail pour réinitialiser un mot de passe oublié.
+La connexion demandée est soit par e-mail et mot de passe, soit par numéro de téléphone précédé de l’indicatif du pays et mot de passe. L’e-mail doit être vérifié à l’inscription par un code OTP. Un OTP par e-mail est également nécessaire pour réinitialiser un mot de passe oublié. Aucun OTP n’est demandé à la connexion et aucune vérification SMS n’est demandée.
 
 **Why:** exigence explicite du propriétaire, distincte d’une connexion par code SMS.
 
-**How to apply:** ne pas remplacer le mot de passe demandé par un code à usage unique et ne pas imposer une vérification SMS initiale.
+**How to apply:** vérifier l’e-mail avant d’activer le compte ; ne pas remplacer le mot de passe de connexion par un code à usage unique et ne pas imposer une vérification SMS.
 
 L’inscription demandée recueille le nom, le prénom, l’e-mail, le numéro de téléphone et le mot de passe avant la connexion.
 
@@ -26,3 +26,9 @@ Le propriétaire exige les deux modes de connexion et indique qu’il n’y a en
 **Why:** il a confirmé vouloir la connexion par e-mail ou téléphone avec mot de passe malgré la limite du Clerk géré par Replit.
 
 **How to apply:** une configuration d’authentification différente est autorisée pour répondre à cette exigence ; vérifier à nouveau l’absence de comptes avant toute opération destructive.
+
+Le propriétaire prévoit d’utiliser ultérieurement une base de données Cybrancee pour son site.
+
+**Why:** choix d’hébergement futur indiqué explicitement par le propriétaire.
+
+**How to apply:** ne pas supposer le moteur de base de données ou ses paramètres et ne pas effectuer de migration vers Cybrancee avant sa demande.
