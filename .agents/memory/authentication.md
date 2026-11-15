@@ -38,3 +38,9 @@ Le propriétaire indique que son offre Cybrancee propose « MySQL ou MariaDB » 
 **Why:** informations confirmées par le propriétaire concernant son offre.
 
 **How to apply:** confirmer le moteur exact et sa version avant d'adapter le stockage ; prévoir une messagerie distincte pour les OTP, sans connecter de service payant sans autorisation.
+
+Le propriétaire dispose de Mailtrap et souhaite le connecter plus tard.
+
+**Why:** choix et report explicitement indiqués par le propriétaire.
+
+**How to apply:** ne pas lancer le raccordement Mailtrap ni demander ses identifiants avant qu'il souhaite le connecter ; vérifier alors si son offre permet l'envoi réel plutôt que le seul test des e-mails.
