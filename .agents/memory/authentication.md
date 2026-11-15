@@ -31,4 +31,10 @@ Le propriétaire prévoit d’utiliser ultérieurement une base de données Cybr
 
 **Why:** choix d’hébergement futur indiqué explicitement par le propriétaire.
 
-**How to apply:** ne pas supposer le moteur de base de données ou ses paramètres et ne pas effectuer de migration vers Cybrancee avant sa demande.
+**How to apply:** ne pas supposer les paramètres de connexion et ne pas effectuer de migration vers Cybrancee avant sa demande.
+
+Le propriétaire indique que son offre Cybrancee propose « MySQL ou MariaDB » et ne comprend pas de serveur SMTP.
+
+**Why:** informations confirmées par le propriétaire concernant son offre.
+
+**How to apply:** confirmer le moteur exact et sa version avant d'adapter le stockage ; prévoir une messagerie distincte pour les OTP, sans connecter de service payant sans autorisation.
