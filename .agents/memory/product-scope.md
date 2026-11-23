@@ -12,18 +12,21 @@ Android, iPhone et tablettes.
 **How to apply:** conserver les composants et maquettes utiles ; privilégier une
 application web responsive sans inventer une exigence d'application native.
 
-Respecter l'ordre demandé : importation du véritable site, compatibilité des
-dépendances, besoins réels SQL/SMTP Cybrancee, authentification directe, puis
-tests complets avant mise en service. Si une étape nécessite des informations
+La priorité actuelle demandée est de mettre d'abord le site en ligne sur
+Plesk, puis de finaliser la base de données. Mailtrap viendra plus tard.
+Cette priorité remplace l'ordre initial qui plaçait la mise en service après
+le raccordement de tous les services. Si une étape nécessite des informations
 ou une intervention du propriétaire, s'arrêter à cette étape et expliquer
 précisément ce qui manque.
 
 **Why:** le propriétaire exige un travail progressif et refuse les fausses
 configurations ou l'utilisation d'un autre service par défaut.
 
-**How to apply:** ne pas remplacer Cybrancee par une base Replit simplement parce
-qu'une variable de connexion est disponible ; confirmer le moteur réel et les
-conditions réseau/TLS avant raccordement.
+**How to apply:** ne pas bloquer la mise en ligne ou le raccordement SQL sur
+l'absence de SMTP. Laisser indisponibles les fonctions nécessitant l'envoi
+d'e-mails sans contourner la vérification OTP. Ne pas remplacer Cybrancee par
+une base Replit simplement parce qu'une variable de connexion est disponible ;
+confirmer le moteur réel et les conditions de connexion depuis Plesk.
 
 Ne supprimer aucun élément utile, ne connecter aucun service payant
 supplémentaire et ne publier le site sans l'accord du propriétaire.
