@@ -49,3 +49,7 @@ _Populate as you build — sharp edges, "always run X before Y" rules._
 - Imported site provenance, preservation and current integration stop:
   `docs/restauration-site.md`. Do not connect business routes to an incidental
   `DATABASE_URL`; wait for the actual Cybrancee engine and SMTP details.
+- Production hosting target: Plesk, not the development preview.
+  See `docs/deploiement-plesk.md` for the precompiled delivery, initial Node.js
+  settings and safe Git branch. Never run a build in Plesk or copy server
+  secrets into the public bundle.

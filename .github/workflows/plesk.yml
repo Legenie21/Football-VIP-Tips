@@ -1,0 +1,40 @@
+name: Build Plesk
+on:
+  push:
+    branches: [main, plesk-prebuilt]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: plesk-build
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build:plesk
+      - run: pnpm run test:plesk
+      - name: Store tested build
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-plesk
+          path: |
+            generated-artifacts/plesk/maestro-plesk.json.gz
+            generated-artifacts/plesk/maestro-plesk.json.gz.sha256
+      - name: Make build available to Plesk
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view plesk-ready >/dev/null 2>&1 || gh release create plesk-ready --target "$GITHUB_SHA" --title "Maestro Tips VIP - Plesk" --notes "Livraison technique précompilée. Ne constitue pas une validation des fonctionnalités encore inachevées."
+          gh release upload plesk-ready generated-artifacts/plesk/maestro-plesk.json.gz generated-artifacts/plesk/maestro-plesk.json.gz.sha256 --clobber

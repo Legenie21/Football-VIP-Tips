@@ -1,6 +1,10 @@
 # See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # compiled output
+/generated-artifacts/
+/.plesk-releases/
+/plesk-current.json
+/.plesk-pointer-*
 dist
 tmp
 out-tsc

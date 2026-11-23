@@ -1,2 +1,3 @@
 - [Authentification du site](authentication.md) — comptes directs autorisés ; OTP e-mail à l’inscription et à la récupération, jamais à la connexion.
 - [Périmètre Maestro Tips VIP](product-scope.md) — ordre de travail, hébergement réel requis, réutilisation et absence de publication sans accord.
+- [Portabilité des livraisons Plesk](plesk-portability.md) — valider le paquet isolé du monorepo, pas seulement sa compilation.
