@@ -64,5 +64,5 @@ Le propriétaire refuse la configuration de déploiement
 **Why:** refus explicite du propriétaire.
 
 **How to apply:** ne plus demander d'activer cette commande dans Plesk ;
-convenir avec le propriétaire d'un autre mode de livraison précompilée avant
-de remplacer le mécanisme existant.
+respecter le parcours réitéré « push sur GitHub, pull dans Plesk, Deploy Now,
+Restart », sans build sur Plesk.

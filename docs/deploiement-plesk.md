@@ -16,17 +16,26 @@ Il ne déploie pas le site et ne contacte pas la base de données.
 GitHub Actions doit être autorisé sur le dépôt ; son utilisation est soumise
 aux quotas et conditions de votre compte GitHub.
 
-L'action de déploiement Plesk télécharge cette livraison, vérifie sa somme
-SHA-256 et son adéquation avec les sources récupérées dans Plesk, puis
-change atomiquement la référence de version. Si le build n'est pas terminé
-ou si les sources diffèrent, elle échoue sans remplacer la livraison active.
+**Aucune action supplémentaire Git n'est nécessaire dans Plesk.** Au démarrage,
+`app.js` récupère automatiquement la livraison déjà compilée depuis GitHub,
+vérifie sa somme SHA-256 et son adéquation avec les sources récupérées dans
+Plesk, puis démarre le serveur. Aucun shell, processus enfant, build ou
+gestionnaire de paquets n'est lancé par ce démarrage.
+
+Le paquet est conservé dans `.plesk-releases/` et référencé automatiquement
+par `plesk-current.json`. Ne pas créer ce fichier à la main. Les redémarrages
+suivants de la même version utilisent le cache vérifié, sans réseau.
+Si les sources ont changé, le paquet correspondant est de nouveau récupéré.
+Si le build n'est pas terminé ou si les sources diffèrent, le démarrage
+échoue explicitement sans remplacer le cache existant ni démarrer un ancien
+serveur incompatible. Un cache altéré est également refusé.
 Les livraisons précédentes sont conservées, sans nettoyage automatique.
 Surveiller l'espace disque et supprimer les anciennes uniquement après
 identification de celles qui ne sont plus utilisées.
 
 ## Configuration initiale dans Plesk
 
-La capture fournie montre Node.js disponible mais **Disabled**, le mode
+Les captures fournies montrent Node.js disponible, le mode
 `production`, une racine d'application `/teamprono.com` et un démarrage `app.js`.
 La version affichée est `26.13.1`. Le code cible Node.js **22 ou supérieur** ;
 les vérifications locales et le workflow utilisent Node.js 24.
@@ -38,21 +47,16 @@ affichée n'a pas été testée dans votre hébergement.
    l'application `/teamprono.com`. Ne pas choisir un répertoire contenant
    un autre site sans l'accord du propriétaire et sans protection adaptée
    chez l'hébergeur.
-2. Dans les actions supplémentaires de déploiement Git, ajouter :
-
-   ```sh
-   node scripts/plesk/install.cjs
-   ```
-
-   Cette commande doit s'exécuter dans la racine de déploiement. Si `node`
-   n'est pas dans le PATH des actions Git, utiliser le chemin absolu du
-   binaire correspondant à la version choisie dans Plesk. Sur de nombreuses
-   installations Linux il est `/opt/plesk/node/24/bin/node` pour Node 24 :
-   **faire confirmer le chemin par l'hébergeur**, ne pas l'inventer.
+2. **Vider et désactiver les actions supplémentaires de déploiement Git.**
+   Retirer l'ancienne commande d'installation si elle y figure encore.
    Ne pas ajouter `npm install`, `pnpm install` ni une commande de build.
+   L'ancien problème de compte chroot bloque ces actions, mais elles ne sont
+   plus utilisées par cette procédure. Cela ne répare pas le compte système
+   lui-même ; si le runtime Node.js est également bloqué par l'hébergeur,
+   celui-ci doit toujours intervenir.
 3. Attendre la réussite du workflow GitHub **Build Plesk**, puis récupérer
-   les modifications et cliquer **Deploy Now**. Vérifier que l'action annonce
-   « Livraison précompilée installée ».
+   les modifications et cliquer **Deploy Now**. Cette étape copie les sources,
+   elle n'exécute aucun installateur.
 4. Dans **Node.js**, définir :
 
    | Paramètre | Valeur |
@@ -74,21 +78,24 @@ affichée n'a pas été testée dans votre hébergement.
    `{"status":"ok"}` signifie que le serveur tourne, **pas** que la base ou
    l'authentification sont opérationnelles.
 
-L'hébergement doit autoriser les actions de déploiement et les sorties HTTPS
-vers GitHub et ses serveurs de téléchargement. Ce n'est pas encore vérifié
-sur votre compte Plesk. Si ces permissions sont absentes, l'hébergeur doit
-les autoriser avant que cette procédure puisse fonctionner.
+Le **processus Node.js de l'application** doit pouvoir écrire dans la racine de
+l'application et accéder en HTTPS à `api.github.com`, `github.com` et aux
+serveurs de téléchargement utilisés par GitHub. Le premier démarrage ou celui
+d'une nouvelle version télécharge environ un mégaoctet, sans compilation.
+L'accès HTTPS et les droits du runtime ne sont pas encore vérifiés sur votre
+hébergement réel. Une erreur de téléchargement s'affiche dans les journaux
+Node.js avec un message explicite, sans exposer les secrets.
 
 ### Dépôt privé
 
 Le dépôt public ne nécessite pas de jeton. Pour un dépôt privé, l'accès Git
 configuré dans Plesk ne donne pas nécessairement accès aux pièces jointes des
-Releases. L'installateur accepte `PLESK_GITHUB_TOKEN`, un jeton à permission
+Releases. Le démarrage accepte `PLESK_GITHUB_TOKEN`, un jeton à permission
 de lecture du contenu de ce seul dépôt. Le fournir **uniquement par un
 mécanisme secret côté hébergeur**, jamais dans Git ou dans une commande
-enregistrée en clair dans le panneau. Les variables Node.js de l'application
-ne sont pas forcément transmises aux actions Git : vérifier ce point avec
-l'hébergeur. Aucun jeton de ce type n'est requis ni configuré ici.
+enregistrée en clair dans le panneau. Il doit être disponible dans les
+variables du processus Node.js de l'application, pas dans les actions Git.
+Aucun jeton de ce type n'est requis pour le dépôt public ni configuré ici.
 
 ## Mises à jour suivantes
 
@@ -97,9 +104,10 @@ l'hébergeur. Aucun jeton de ce type n'est requis ni configuré ici.
 3. Dans Plesk : récupérer les changements, **Deploy Now**, puis **Restart App**.
 
 Ne pas utiliser le déploiement automatique sur le webhook de push : il
-pourrait s'exécuter avant la fin de la compilation GitHub. En cas d'échec,
-lire le message de l'action et ne pas redémarrer sur une première installation
-sans livraison valide.
+pourrait s'exécuter avant la fin de la compilation GitHub. Si un redémarrage
+arrive trop tôt, attendre la réussite du workflow puis redémarrer à nouveau.
+En cas d'échec, lire les journaux **Node.js** ; aucune commande de secours
+d'installation ou de build n'est nécessaire dans Plesk.
 
 Le tag `plesk-ready` est un canal de livraison, pas une référence historique
 immuable. La version véritable est enregistrée dans l'archive et dans
@@ -120,16 +128,12 @@ pour les incorporer. Les plugins d'aperçu Replit ne sont pas activés en
 production. Les sorties restent dans `generated-artifacts/plesk/`, ignoré
 par Git et par la publication depuis l'environnement de développement.
 
-Un installateur hors ligne est également prévu :
-
-```sh
-node scripts/plesk/install.cjs --file generated-artifacts/plesk/maestro-plesk.json.gz
-```
-
-Le fichier `.sha256` adjacent est obligatoire. Le build doit correspondre
-exactement aux sources présentes. Cette commande n'est pas l'action Plesk
-habituelle : sur Plesk elle s'utilise seulement après transfert manuel des
-deux fichiers précompilés.
+Les tests valident notamment un premier démarrage sans cache ni installateur
+avec des réponses GitHub simulées, le redémarrage hors réseau de la même
+version, le refus d'un cache modifié et les erreurs HTTPS. Les tests utilisent
+un dossier isolé sans `node_modules`, et ne déploient rien sur Plesk.
+L'ancien utilitaire d'installation est conservé pour les vérifications
+hors ligne ; il n'est ni appelé par `app.js` ni requis dans la procédure Plesk.
 
 ## Paramètres réels et limites fonctionnelles
 
@@ -151,24 +155,15 @@ deux fichiers précompilés.
 ## Commandes GitHub
 
 La branche de travail et de déploiement demandée est **uniquement `main`**.
-La vérification actuelle a constaté que les historiques local et GitHub
-n'ont pas d'ancêtre commun. Ils doivent être réconciliés avant le premier
-push sur `main`, en conservant le code actuel et l'historique du dépôt
-d'origine. Une fusion automatique normale présente des conflits ; ne pas
-la lancer sans décision explicite sur les versions à conserver.
-Ne pas créer une autre branche de déploiement pour contourner ce problème,
-ne pas forcer le push et ne supprimer aucune branche distante sans accord.
-
-Après réconciliation, ces commandes envoient vers `main`. Le contrôle
-d'ascendance bloque l'envoi si cette condition n'est pas remplie :
+Ne pas créer une autre branche de déploiement, ne pas forcer le push et ne
+supprimer aucune branche distante sans accord. Le contrôle d'ascendance
+ci-dessous bloque l'envoi si l'historique GitHub n'a pas été intégré :
 
 ```sh
 git status
 git fetch origin
-git add app.js package.json .gitignore .replitignore replit.md public/.gitkeep \
-  artifacts/api-server/src/plesk.ts artifacts/pronostics-foot/vite.config.ts \
-  scripts/plesk .github/workflows/plesk.yml docs/deploiement-plesk.md
-git commit -m "Prepare prebuilt Plesk delivery"
+git add app.js scripts/plesk docs/deploiement-plesk.md replit.md
+git commit -m "Start prebuilt Plesk application without deployment actions"
 git merge-base --is-ancestor origin/main HEAD && git push origin HEAD:main
 ```
 

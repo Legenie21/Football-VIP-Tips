@@ -109,10 +109,131 @@ test("Le build démarre sans node_modules et conserve la livraison en cas d'erre
     assert.match(mismatch.stderr, /ne correspondent pas/);
     assert.equal(await fs.readFile(path.join(temporary, "plesk-current.json"), "utf8"), pointer);
   } finally {
-    if (child && child.exitCode === null) {
+    if (child && child.exitCode === null && child.signalCode === null) {
       child.kill("SIGTERM");
       await new Promise(resolve => child.once("exit", resolve));
     }
+    await fs.rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("app.js récupère automatiquement le paquet puis redémarre sans réseau ni action Git", { timeout: 30000 }, async () => {
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "maestro-cold-start-"));
+  let child;
+  try {
+    for (const name of [...sourceFiles, ...sourceRoots]) {
+      await fs.mkdir(path.dirname(path.join(temporary, name)), { recursive: true });
+      await fs.cp(path.join(root, name), path.join(temporary, name), {
+        recursive: true,
+        filter: filename => !filename.split(path.sep).some(part => ["node_modules", "dist"].includes(part)) &&
+          !filename.endsWith(".tsbuildinfo"),
+      });
+    }
+    await assert.rejects(fs.access(path.join(temporary, "plesk-current.json")));
+    const archivePath = path.join(output, assetName);
+    const preload = path.join(temporary, "test-network.cjs");
+    const calls = path.join(temporary, "test-network-calls");
+    // Substitute GitHub HTTP responses, not delivery code. No real release is
+    // required before CI has built and published this source revision.
+    await fs.writeFile(preload, `
+      const fs = require("node:fs");
+      const archivePath = ${JSON.stringify(archivePath)};
+      const calls = ${JSON.stringify(calls)};
+      globalThis.fetch = async url => {
+        fs.appendFileSync(calls, "request\\n");
+        if (url === "https://api.github.com/repos/Legenie21/Football-VIP-Tips/releases/tags/plesk-ready") {
+          return new Response(JSON.stringify({assets: [
+            {name: ${JSON.stringify(assetName)}, size: fs.statSync(archivePath).size, browser_download_url: "https://github.com/test/bundle"},
+            {name: ${JSON.stringify(assetName + ".sha256")}, size: 100, browser_download_url: "https://github.com/test/checksum"}
+          ]}));
+        }
+        if (url === "https://github.com/test/bundle") return new Response(fs.readFileSync(archivePath));
+        if (url === "https://github.com/test/checksum") return new Response(fs.readFileSync(archivePath + ".sha256"));
+        throw new Error("Unexpected network call");
+      };
+    `);
+    const probe = net.createServer();
+    await new Promise(resolve => probe.listen(0, "127.0.0.1", resolve));
+    const port = probe.address().port;
+    await new Promise(resolve => probe.close(resolve));
+    const env = {
+      PATH: process.env.PATH, NODE_ENV: "production", LOG_LEVEL: "error",
+      PORT: String(port), NODE_OPTIONS: `--require=${preload}`,
+    };
+    async function launch() {
+      child = spawn(process.execPath, ["app.js"], {
+        cwd: temporary, env, stdio: ["ignore", "pipe", "pipe"],
+      });
+      let errors = "";
+      child.stdout.on("data", chunk => { errors += chunk.toString(); });
+      child.stderr.on("data", chunk => { errors += chunk.toString(); });
+      for (let attempt = 0; attempt < 100; attempt++) {
+        if (child.exitCode !== null) throw new Error(`Échec du démarrage automatique : ${errors}`);
+        try {
+          const response = await fetch(`http://127.0.0.1:${port}/api/healthz`);
+          if (response.status === 200) return;
+        } catch {}
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      throw new Error(`Serveur indisponible : ${errors}`);
+    }
+    async function stop() {
+      if (child && child.exitCode === null && child.signalCode === null) {
+        const stopped = new Promise(resolve => child.once("exit", resolve));
+        child.kill("SIGTERM");
+        await stopped;
+      }
+    }
+    await launch(); // No installer or pre-existing pointer/cache.
+    const pointer = JSON.parse(await fs.readFile(path.join(temporary, "plesk-current.json"), "utf8"));
+    assert.match(pointer.release, /^[a-f0-9]{64}$/);
+    assert.match(pointer.sourceFingerprint, /^[a-f0-9]{64}$/);
+    assert.equal((await fs.readFile(calls, "utf8")).trim().split("\n").length, 3);
+    assert.equal((await fetch(`http://127.0.0.1:${port}/`)).status, 200);
+    await stop();
+    await fs.writeFile(preload, "globalThis.fetch = async () => { throw new Error('Network must not be used for a valid cache'); };");
+    await launch();
+    assert.equal((await fetch(`http://127.0.0.1:${port}/vip`)).status, 200);
+    await stop();
+    assert.equal((await fs.readFile(calls, "utf8")).trim().split("\n").length, 3);
+    // A valid pointer must never allow a modified executable to run.
+    await fs.appendFile(path.join(temporary, ".plesk-releases", pointer.release, "server.cjs"), "\n// tampered\n");
+    const rejected = spawnSync(process.execPath, ["app.js"], {
+      cwd: temporary, env, encoding: "utf8", timeout: 10000,
+    });
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /cache.*modifié/i);
+  } finally {
+    if (child && child.exitCode === null && child.signalCode === null) {
+      const stopped = new Promise(resolve => child.once("exit", resolve));
+      child.kill("SIGTERM");
+      await stopped;
+    }
+    await fs.rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("Un échec HTTPS au premier démarrage est explicite et ne crée pas de version active", async () => {
+  const { prepareRelease } = require("./delivery.cjs");
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "maestro-no-network-"));
+  try {
+    for (const name of [...sourceFiles, ...sourceRoots]) {
+      await fs.mkdir(path.dirname(path.join(temporary, name)), { recursive: true });
+      await fs.cp(path.join(root, name), path.join(temporary, name), {
+        recursive: true,
+        filter: filename => !filename.split(path.sep).some(part => ["node_modules", "dist"].includes(part)) &&
+          !filename.endsWith(".tsbuildinfo"),
+      });
+    }
+    await assert.rejects(
+      prepareRelease({
+        root: temporary, token: "test-credential-not-for-logs",
+        fetchImpl: async () => { throw new Error("test-credential-not-for-logs"); },
+      }),
+      error => /Accès HTTPS/.test(error.publicMessage) && !error.message.includes("test-credential"),
+    );
+    await assert.rejects(fs.access(path.join(temporary, "plesk-current.json")));
+  } finally {
     await fs.rm(temporary, { recursive: true, force: true });
   }
 });

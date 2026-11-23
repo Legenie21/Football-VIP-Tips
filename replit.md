@@ -53,3 +53,5 @@ _Populate as you build — sharp edges, "always run X before Y" rules._
   See `docs/deploiement-plesk.md` for the precompiled delivery, initial Node.js
   settings and safe Git branch. Never run a build in Plesk or copy server
   secrets into the public bundle.
+  Plesk Git deployment actions must be empty: `app.js` retrieves and verifies
+  the precompiled GitHub package on startup, then reuses a verified local cache.
