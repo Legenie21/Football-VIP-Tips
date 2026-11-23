@@ -6,10 +6,10 @@
 type Environment = Record<string, string | undefined>;
 
 export const directAuthPolicy = Object.freeze({
-  registrationFields: ["lastName", "firstName", "email", "phoneE164", "password"],
-  loginIdentifiers: ["email", "phoneE164"],
-  verifyEmailBeforeActivation: true,
-  registrationOtpChannel: "email",
+  registrationFields: ["email", "username", "password"],
+  loginIdentifiers: ["email"],
+  verifyEmailBeforeActivation: false,
+  registrationOtpChannel: null,
   loginOtpRequired: false,
   passwordResetOtpChannel: "email",
   smsRequired: false,

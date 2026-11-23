@@ -9,6 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "check:direct-auth-config": "node ./scripts/check-direct-auth-config.mjs",
     "test:direct-auth-config": "node --test ./tests/direct-auth-config.test.mjs",
+    "test:accounts": "node ./scripts/test-accounts.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "express": "^5.3.0",
     "express-oauth2-jwt-bearer": "^1.11.0",
     "http-proxy-middleware": "^4.2.1",
+    "mysql2": "^3.24.6",
     "pino": "^9.14.0",
     "pino-http": "^10.5.0"
   },

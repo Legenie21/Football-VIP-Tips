@@ -78,13 +78,15 @@ test("Le build démarre sans node_modules et conserve la livraison en cas d'erre
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     assert.ok(ready, "Le serveur doit être disponible sans installation");
-    for (const route of ["/", "/vip", "/admin", "/sign-in", "/sign-up", "/sign-in/continue"]) {
+    for (const route of ["/", "/vip", "/admin", "/dashboard", "/sign-in", "/sign-up", "/sign-in/continue"]) {
       const response = await fetch(base + route);
       assert.equal(response.status, 200, `${route}: ${errors}`);
       assert.match(response.headers.get("content-type"), /text\/html/);
       assert.equal(response.headers.get("cache-control"), "no-store");
     }
     assert.equal((await fetch(`${base}/api/predictions`)).status, 503);
+    assert.deepEqual(await (await fetch(`${base}/api/auth/session`)).json(), { user: null });
+    assert.equal((await fetch(`${base}/api/member/dashboard`)).status, 401);
     const home = await (await fetch(base)).text();
     const asset = home.match(/src="([^"]+\/assets\/[^"]+\.js)"/)?.[1] ||
       home.match(/src="(\/assets\/[^"]+\.js)"/)?.[1];

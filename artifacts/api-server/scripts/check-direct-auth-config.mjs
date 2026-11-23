@@ -8,7 +8,7 @@ try {
   loadDirectAuthInfrastructureConfig(process.env);
   process.stdout.write(
     "Paramètres valides. Aucune connexion à la base ou au SMTP n'a été tentée.\n" +
-    "Les parcours d'authentification restent à implémenter et à raccorder.\n",
+    "Ce contrôle historique concerne la préparation SMTP/récupération. Pour les comptes membres, consulter docs/member-accounts-plesk.md.\n",
   );
 } catch (error) {
   if (!(error instanceof DirectAuthConfigurationError)) throw error;

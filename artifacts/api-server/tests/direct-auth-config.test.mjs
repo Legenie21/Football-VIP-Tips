@@ -75,11 +75,12 @@ test("les secrets faibles ou réutilisés sont refusés", () => {
   assert.throws(() => loadDirectAuthInfrastructureConfig({ ...env, AUTH_OTP_SECRET: env.SESSION_SECRET }),
     DirectAuthConfigurationError);
 });
-test("la politique prévoit l'OTP e-mail à l'inscription et à la récupération uniquement", () => {
-  assert.equal(directAuthPolicy.verifyEmailBeforeActivation, true);
-  assert.equal(directAuthPolicy.registrationOtpChannel, "email");
+test("la politique active les comptes sans OTP à l'inscription ou à la connexion", () => {
+  assert.equal(directAuthPolicy.verifyEmailBeforeActivation, false);
+  assert.equal(directAuthPolicy.registrationOtpChannel, null);
   assert.equal(directAuthPolicy.passwordResetOtpChannel, "email");
   assert.equal(directAuthPolicy.loginOtpRequired, false);
   assert.equal(directAuthPolicy.smsRequired, false);
-  assert.deepEqual(directAuthPolicy.loginIdentifiers, ["email", "phoneE164"]);
+  assert.deepEqual(directAuthPolicy.loginIdentifiers, ["email"]);
+  assert.deepEqual(directAuthPolicy.registrationFields, ["email", "username", "password"]);
 });

@@ -12,6 +12,20 @@ jobs:
   build:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    services:
+      account-test-database:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci-only-member-tests
+          MARIADB_DATABASE: maestro_auth_test
+          MARIADB_ROOT_HOST: "%"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=12
     permissions:
       contents: write
     steps:
@@ -24,6 +38,16 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Test member accounts against isolated MariaDB
+        run: pnpm --filter @workspace/api-server run test:accounts
+        env:
+          MAESTRO_SQL_TESTS: "1"
+          CYBRANCEE_DB_HOST: "127.0.0.1"
+          CYBRANCEE_DB_PORT: "3306"
+          CYBRANCEE_DB_NAME: maestro_auth_test
+          CYBRANCEE_DB_USER: root
+          CYBRANCEE_DB_PASSWORD: ci-only-member-tests
+          CYBRANCEE_DB_TLS: "false"
       - run: pnpm run build:plesk
       - run: pnpm run test:plesk
       - name: Store tested build

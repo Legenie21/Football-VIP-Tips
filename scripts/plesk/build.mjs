@@ -39,6 +39,14 @@ const result = await build({
     // debug optionally loads supports-color in a try/catch. Production logs
     // are JSON; disable that optional terminal feature instead of requiring npm.
     setup(plugin) {
+      // mysql2 optionally loads cardinal for SQL debug highlighting. It is not
+      // needed in production and must not become an external npm dependency.
+      plugin.onResolve({ filter: /^cardinal$/ }, () => ({
+        path: "cardinal", namespace: "production-no-sql-colors",
+      }));
+      plugin.onLoad({ filter: /.*/, namespace: "production-no-sql-colors" }, () => ({
+        contents: "module.exports = { highlight: function (source) { return source; } };", loader: "js",
+      }));
       plugin.onResolve({ filter: /^supports-color$/ }, () => ({
         path: "supports-color", namespace: "production-no-color",
       }));

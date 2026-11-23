@@ -21,7 +21,9 @@ import { Route, Switch, Link, Router as WouterRouter, Redirect, useLocation } fr
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Auth0AuthAdapter, ClerkAuthAdapter, UnconfiguredAuthAdapter, useAppAuth } from '@/lib/auth-provider';
+import { Auth0AuthAdapter, ClerkAuthAdapter, DirectAuthAdapter, UnconfiguredAuthAdapter, useAppAuth } from '@/lib/auth-provider';
+import { MemberAuthPage } from '@/pages/member-auth';
+import { MemberDashboardPage } from '@/pages/member-dashboard';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -72,7 +74,7 @@ function Notice({ message, onClose }: { message: string; onClose: () => void }) 
 }
 
 function SiteHeader() {
-  const { isSignedIn, user, signOut } = useAppAuth();
+  const { isSignedIn, user, signOut, isSigningOut } = useAppAuth();
   const [open, setOpen] = useState(false);
   return <header className="relative z-20 border-b border-[hsl(var(--border))] bg-[hsl(var(--background)/.94)]">
     <div className="page-shell flex h-[74px] items-center justify-between">
@@ -84,10 +86,11 @@ function SiteHeader() {
         <Link href="/" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-pronostics">Pronostics</Link>
         <a href="#resultats" onClick={() => setOpen(false)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]">Résultats</a>
         <Link href="/vip" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-vip-nav">Espace VIP</Link>
-        {isSignedIn && <Link href="/admin" onClick={() => setOpen(false)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-admin">Administration</Link>}
+        {isSignedIn && <Link href="/dashboard" onClick={() => setOpen(false)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-dashboard">Mon tableau de bord</Link>}
+        {isSignedIn && user?.role === 'admin' && <Link href="/admin" onClick={() => setOpen(false)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-admin">Administration</Link>}
         <div className="lg:hidden">
           {isSignedIn
-            ? <button onClick={() => void signOut()} className="btn-quiet text-sm" data-testid="button-sign-out"><LogOut size={15} /> Déconnexion</button>
+            ? <button onClick={() => void signOut()} disabled={isSigningOut} className="btn-quiet text-sm" data-testid="button-sign-out"><LogOut size={15} /> {isSigningOut ? 'Déconnexion…' : 'Déconnexion'}</button>
             : <div className="flex flex-col gap-3">
                 <Link href="/sign-in" onClick={() => setOpen(false)} className="btn-primary text-sm" data-testid="link-sign-in">Connexion <ArrowRight size={15} /></Link>
                 <Link href="/sign-up" onClick={() => setOpen(false)} className="btn-primary btn-signup text-sm" data-testid="link-sign-up">Inscription <ArrowRight size={15} /></Link>
@@ -98,9 +101,9 @@ function SiteHeader() {
         {open ? <X size={21} /> : <Menu size={21} />}
       </button>
       <div className="hidden items-center gap-3 lg:flex">
-        {isSignedIn && <span className="max-w-[130px] truncate text-xs text-[hsl(var(--muted-foreground))]">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress || user?.email || user?.phone_number}</span>}
+        {isSignedIn && <span className="max-w-[130px] truncate text-xs text-[hsl(var(--muted-foreground))]">{user?.username || user?.firstName || user?.emailAddresses?.[0]?.emailAddress || user?.email || user?.phone_number}</span>}
         {isSignedIn
-          ? <button onClick={() => void signOut()} className="btn-quiet text-sm" data-testid="button-sign-out-desktop"><LogOut size={15} /> Sortir</button>
+          ? <button onClick={() => void signOut()} disabled={isSigningOut} className="btn-quiet text-sm" data-testid="button-sign-out-desktop"><LogOut size={15} /> {isSigningOut ? 'Sortie…' : 'Sortir'}</button>
           : <>
               <Link href="/sign-in" className="btn-primary text-sm" data-testid="link-sign-in-desktop">Connexion <ArrowRight size={15} /></Link>
               <Link href="/sign-up" className="btn-primary btn-signup text-sm" data-testid="link-sign-up-desktop">Inscription <ArrowRight size={15} /></Link>
@@ -112,7 +115,7 @@ function SiteHeader() {
 
 function PreparationNotice() {
   return <div role="note" className="border-b border-[hsl(var(--accent)/.5)] bg-[hsl(var(--accent)/.18)] text-[hsl(var(--foreground))]" data-testid="status-preparation">
-    <div className="page-shell flex items-start gap-2 py-2.5 text-xs leading-5"><CircleAlert size={15} className="mt-0.5 shrink-0" /><span><strong>Site en préparation.</strong> La base de données, la messagerie et l’espace membre attendent leur configuration. Aucun pronostic ni statistique n’est affiché tant que le service n’est pas opérationnel.</span></div>
+    <div className="page-shell flex items-start gap-2 py-2.5 text-xs leading-5"><CircleAlert size={15} className="mt-0.5 shrink-0" /><span><strong>Site en préparation.</strong> Les comptes membres se créent sans e-mail de confirmation. Les données des pronostics et le suivi des abonnements sont encore en cours de configuration : rien n’est affiché tant que ce n’est pas opérationnel.</span></div>
   </div>;
 }
 
@@ -519,28 +522,13 @@ function AdminPage() {
   </PageFrame>;
 }
 
-function AuthPage({ signup = false }: { signup?: boolean }) {
-  return <div className="min-h-[100dvh] bg-[hsl(var(--background))]">
-    <PreparationNotice />
-    <div className="page-shell flex min-h-[100dvh] flex-col justify-center py-8">
-      <div className="mb-6 text-center"><Link href="/" className="inline-flex items-center gap-3" data-testid="link-auth-home"><span className="grid h-10 w-10 place-items-center rounded-[14px] bg-[hsl(var(--primary))] text-white"><Trophy size={21} /></span><span className="display-font text-left text-sm font-bold">Maestro Tips VIP<span className="block font-sans text-[10px] font-medium text-[hsl(var(--muted-foreground))]">Le football, sans détour</span></span></Link><p className="mt-4 text-xs text-[hsl(var(--muted-foreground))]">Votre passion du jeu, suivie avec transparence.</p></div>
-      <section className="surface mx-auto w-full max-w-[440px] space-y-3 p-6 text-center sm:p-8" data-testid="status-auth-unavailable">
-        <LockKeyhole size={24} className="mx-auto text-[hsl(var(--primary))]" />
-        <h1 className="display-font text-xl font-bold">{signup ? 'Inscription bientôt disponible' : 'Connexion bientôt disponible'}</h1>
-        <p className="text-sm leading-6 text-[hsl(var(--muted-foreground))]">L’espace membre est en cours de configuration. La création de compte et la connexion seront ouvertes dès que la base de données et la messagerie seront prêtes.</p>
-        <Link href="/" className="btn-primary w-full justify-center" data-testid="link-auth-back">Retour aux pronostics <ArrowRight size={16} /></Link>
-      </section>
-      <p className="mx-auto mt-5 max-w-md text-center text-[10px] leading-4 text-[hsl(var(--muted-foreground))]">Les pronostics ne garantissent aucun résultat. Jouez de manière responsable.</p>
-    </div>
-  </div>;
-}
-
 function Router() {
   const [location] = useLocation();
   return <ErrorBoundary resetKey={location}><Switch>
     <Route path="/" component={Home} />
-    <Route path="/sign-in/*?" component={() => <AuthPage />} />
-    <Route path="/sign-up/*?" component={() => <AuthPage signup />} />
+    <Route path="/sign-in/*?">{() => <MemberAuthPage mode="signin" notice={<PreparationNotice />} />}</Route>
+    <Route path="/sign-up/*?">{() => <MemberAuthPage mode="signup" notice={<PreparationNotice />} />}</Route>
+    <Route path="/dashboard">{() => <MemberDashboardPage Frame={PageFrame} />}</Route>
     <Route path="/vip" component={VipPage} />
     <Route path="/admin" component={AdminPage} />
     <Route component={NotFound} />
@@ -584,11 +572,11 @@ function Auth0App() {
 }
 
 // Legacy providers (ClerkApp / Auth0App) are preserved but intentionally not activated
-// until the direct Cybrancee SQL/SMTP authentication is configured.
-void ClerkApp; void Auth0App;
+// now that direct email/password accounts (DirectAuthAdapter) are active.
+void ClerkApp; void Auth0App; void UnconfiguredAuthAdapter;
 
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}><UnconfiguredAuthAdapter><Router /></UnconfiguredAuthAdapter></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={basePath}><DirectAuthAdapter><Router /></DirectAuthAdapter></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
 }
 
 export default App;

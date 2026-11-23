@@ -27,17 +27,17 @@ Le propriétaire avait indiqué qu’il n’y avait aucun compte existant lors d
 
 **How to apply:** vérifier à nouveau l’absence de comptes avant toute opération destructive ; ne pas déduire que la base reste vide.
 
-Le propriétaire prévoit d’utiliser ultérieurement une base de données Cybrancee pour son site.
+Le propriétaire utilise une base Cybrancee pour le site hébergé sur Plesk.
 
-**Why:** choix d’hébergement futur indiqué explicitement par le propriétaire.
+**Why:** choix d’hébergement confirmé par le propriétaire.
 
-**How to apply:** ne pas supposer les paramètres de connexion et ne pas effectuer de migration vers Cybrancee avant sa demande.
+**How to apply:** utiliser les paramètres réels de cette base et ne pas substituer une base Replit ; ne pas confondre les secrets Replit avec les variables Node.js du serveur Plesk.
 
-Le propriétaire indique que son offre Cybrancee propose « MySQL ou MariaDB » et ne comprend pas de serveur SMTP.
+Le propriétaire a confirmé MariaDB 11.4.14 par une capture phpMyAdmin le 23 novembre 2026. Sa base était sans tables lors de cette vérification. Son offre n’inclut pas de SMTP.
 
-**Why:** informations confirmées par le propriétaire concernant son offre.
+**Why:** résultats de `SELECT VERSION()` et `SHOW TABLES` fournis par le propriétaire, après l’indication initiale « MySQL ou MariaDB ».
 
-**How to apply:** confirmer le moteur exact et sa version avant d'adapter le stockage ; prévoir une messagerie distincte pour les OTP, sans connecter de service payant sans autorisation.
+**How to apply:** cibler MariaDB, sans supposer que la base reste vide ; préserver les données et fournir le SQL à exécuter dans phpMyAdmin. Ne pas bloquer les comptes sans confirmation sur le SMTP.
 
 Le propriétaire dispose de Mailtrap et souhaite le connecter plus tard.
 

@@ -23,7 +23,7 @@ app.use(express.static(publicDir, {
   },
 }));
 // Only actual client routes receive the SPA, never a missing asset or secret.
-app.get(/^\/(?:vip|admin|sign-in(?:\/.*)?|sign-up(?:\/.*)?)?$/, (_req, res) => {
+app.get(/^\/(?:vip|admin|dashboard|sign-in(?:\/.*)?|sign-up(?:\/.*)?)?$/, (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   // Give sendFile a root: absolute paths containing the hidden releases
   // directory would otherwise be rejected by Express's dotfile protection.

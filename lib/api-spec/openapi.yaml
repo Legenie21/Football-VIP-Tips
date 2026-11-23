@@ -3,7 +3,7 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API de pronostics, abonnements VIP et paiements Mobile Money manuels. Les sessions peuvent être authentifiées par Clerk ou Auth0.
+  description: API Maestro Tips VIP, avec comptes directs et sessions sécurisées sur MariaDB.
 servers:
   - url: /api
     description: Base API path
@@ -17,6 +17,82 @@ tags:
   - name: admin
     description: Gestion réservée à l’administrateur
 paths:
+  /auth/register:
+    post:
+      operationId: registerAccount
+      tags: [accounts]
+      summary: Create an active member account without email confirmation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccountRegistration" }
+      responses:
+        "201":
+          description: Account created and session opened
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MemberSession" }
+        "400": { description: Invalid fields }
+        "403": { description: Untrusted request origin }
+        "409": { description: Email or username unavailable }
+        "429": { description: Too many attempts }
+        "503": { description: Database unavailable or configuration incomplete }
+  /auth/login:
+    post:
+      operationId: loginAccount
+      tags: [accounts]
+      summary: Open a session with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccountCredentials" }
+      responses:
+        "200":
+          description: Session opened
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MemberSession" }
+        "400": { description: Invalid fields }
+        "401": { description: Invalid credentials }
+        "403": { description: Untrusted request origin }
+        "429": { description: Too many attempts }
+        "503": { description: Database unavailable or configuration incomplete }
+  /auth/session:
+    get:
+      operationId: getAccountSession
+      tags: [accounts]
+      summary: Current user or an anonymous session
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountSession" }
+        "503": { description: Database unavailable }
+  /auth/logout:
+    post:
+      operationId: logoutAccount
+      tags: [accounts]
+      summary: Revoke the current session
+      responses:
+        "204": { description: Session revoked }
+        "403": { description: Untrusted request origin }
+        "503": { description: Database unavailable }
+  /member/dashboard:
+    get:
+      operationId: getMemberDashboard
+      tags: [accounts]
+      summary: Authenticated member account overview
+      responses:
+        "200":
+          description: Member dashboard
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MemberSession" }
+        "401": { description: Sign-in required }
+        "503": { description: Database unavailable }
   /healthz:
     get:
       operationId: healthCheck
@@ -401,6 +477,44 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    AccountRegistration:
+      type: object
+      additionalProperties: false
+      required: [email, username, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        username: { type: string, minLength: 3, maxLength: 30, pattern: "^[a-zA-Z0-9_.-]+$" }
+        password: { type: string, minLength: 12, maxLength: 128 }
+    AccountCredentials:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 128 }
+    AccountUser:
+      type: object
+      required: [id, email, username, role, emailVerified, createdAt]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        username: { type: string }
+        role: { type: string, enum: [member, admin] }
+        emailVerified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    AccountSession:
+      type: object
+      required: [user]
+      properties:
+        user:
+          anyOf:
+            - { $ref: "#/components/schemas/AccountUser" }
+            - { type: "null" }
+    MemberSession:
+      type: object
+      required: [user]
+      properties:
+        user: { $ref: "#/components/schemas/AccountUser" }
     HealthStatus:
       type: object
       properties:

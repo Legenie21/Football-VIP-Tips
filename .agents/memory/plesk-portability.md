@@ -16,6 +16,17 @@ puisse servir les pages. Un démarrage du serveur seul n'aurait pas suffi.
 en particulier après ajout d'un pilote SQL, d'une messagerie ou d'une
 dépendance native ; ne pas supposer qu'un paquet compilé est autonome.
 
+Pour les évolutions du stockage, compléter le démarrage HTTP par des requêtes
+SQL réelles contre une base de test isolée. Une page publique ou une session
+anonyme accessible ne prouve pas que MariaDB est raccordée.
+
+**Why:** le pilote peut ne charger certains chemins qu’à la première requête,
+et les contrôles publics doivent rester accessibles même sans stockage.
+
+**How to apply:** distinguer tests applicatifs avec doubles, tests SQL isolés
+et vérification de la vraie base dans Plesk. Ne pas annoncer la création réelle
+des comptes tant que la dernière étape n’a pas été validée.
+
 L'exécution des actions Git dans Plesk est un environnement distinct du
 runtime Node.js de l'application ; sa disponibilité doit être vérifiée
 séparément, notamment pour les comptes exécutés en chroot.

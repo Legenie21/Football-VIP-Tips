@@ -1,3 +1,11 @@
+# État actuel
+
+L’inscription, la connexion et le tableau de bord utilisent désormais le parcours
+décrit dans [Comptes membres — activation sur Plesk](member-accounts-plesk.md).
+Il ne nécessite ni SMTP ni confirmation par e-mail. Le reste de ce document
+conserve la préparation antérieure de la messagerie et des fonctions à venir ;
+ses exigences OTP à l’inscription ne s’appliquent plus.
+
 # Préparation du raccordement à Cybrancee
 
 ## Ce qui est préparé
