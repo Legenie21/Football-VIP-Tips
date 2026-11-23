@@ -32,3 +32,15 @@ supplémentaire et ne publier le site sans l'accord du propriétaire.
 
 **How to apply:** préserver le code original et le travail local ; demander
 l'autorisation avant toute dépense ou publication.
+
+Le propriétaire souhaite désormais héberger le projet sur Plesk, et non sur
+Replit Core. Il demande un projet déjà compilé : push vers GitHub, récupération
+dans Plesk, puis « Deploy Now » et « Restart », sans nouveau build dans Plesk.
+
+**Why:** nouvelle cible d'hébergement et procédure de livraison explicitement
+demandées par le propriétaire.
+
+**How to apply:** préparer une livraison précompilée compatible avec le runtime
+réel de Plesk ; confirmer la disponibilité et la version de Node.js avant de
+choisir le point de démarrage. Ne pas confondre ce conditionnement avec la
+finalisation de l'authentification, de la base de données ou de la messagerie.
