@@ -80,23 +80,31 @@ function SiteHeader() {
         <span className="grid h-10 w-10 place-items-center rounded-[14px] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><Trophy size={21} strokeWidth={2.4} /></span>
         <span><strong className="display-font block text-[15px] leading-tight">Maestro Tips VIP</strong><span className="text-[10px] font-semibold uppercase tracking-[.17em] text-[hsl(var(--muted-foreground))]">Le football, sans détour</span></span>
       </Link>
-      <nav className={`${open ? 'absolute left-0 right-0 top-[73px] flex flex-col border-b bg-[hsl(var(--background))] p-5 shadow-md' : 'hidden'} gap-6 text-sm font-semibold md:static md:flex md:flex-row md:items-center md:border-0 md:bg-transparent md:p-0 md:shadow-none`}>
+      <nav className={`${open ? 'absolute left-0 right-0 top-[73px] flex flex-col border-b bg-[hsl(var(--background))] p-5 shadow-md' : 'hidden'} gap-6 text-sm font-semibold lg:static lg:flex lg:flex-row lg:items-center lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}>
         <Link href="/" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-pronostics">Pronostics</Link>
         <a href="#resultats" onClick={() => setOpen(false)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]">Résultats</a>
         <Link href="/vip" className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-vip-nav">Espace VIP</Link>
         {isSignedIn && <Link href="/admin" onClick={() => setOpen(false)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]" data-testid="link-admin">Administration</Link>}
-        {isSignedIn
-          ? <button onClick={() => void signOut()} className="btn-quiet text-sm md:hidden" data-testid="button-sign-out"><LogOut size={15} /> Déconnexion</button>
-          : <Link href="/sign-in" className="btn-primary text-sm md:hidden" data-testid="link-sign-in">Connexion <ArrowRight size={15} /></Link>}
+        <div className="lg:hidden">
+          {isSignedIn
+            ? <button onClick={() => void signOut()} className="btn-quiet text-sm" data-testid="button-sign-out"><LogOut size={15} /> Déconnexion</button>
+            : <div className="flex flex-col gap-3">
+                <Link href="/sign-in" onClick={() => setOpen(false)} className="btn-primary text-sm" data-testid="link-sign-in">Connexion <ArrowRight size={15} /></Link>
+                <Link href="/sign-up" onClick={() => setOpen(false)} className="btn-primary btn-signup text-sm" data-testid="link-sign-up">Inscription <ArrowRight size={15} /></Link>
+              </div>}
+        </div>
       </nav>
-      <button className="rounded-lg p-2 md:hidden" onClick={() => setOpen(!open)} aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={open} data-testid="button-menu">
+      <button className="rounded-lg p-2 lg:hidden" onClick={() => setOpen(!open)} aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={open} data-testid="button-menu">
         {open ? <X size={21} /> : <Menu size={21} />}
       </button>
-      <div className="hidden items-center gap-3 md:flex">
+      <div className="hidden items-center gap-3 lg:flex">
         {isSignedIn && <span className="max-w-[130px] truncate text-xs text-[hsl(var(--muted-foreground))]">{user?.firstName || user?.emailAddresses?.[0]?.emailAddress || user?.email || user?.phone_number}</span>}
         {isSignedIn
           ? <button onClick={() => void signOut()} className="btn-quiet text-sm" data-testid="button-sign-out-desktop"><LogOut size={15} /> Sortir</button>
-          : <Link href="/sign-in" className="btn-primary text-sm" data-testid="link-sign-in-desktop">Connexion <ArrowRight size={15} /></Link>}
+          : <>
+              <Link href="/sign-in" className="btn-primary text-sm" data-testid="link-sign-in-desktop">Connexion <ArrowRight size={15} /></Link>
+              <Link href="/sign-up" className="btn-primary btn-signup text-sm" data-testid="link-sign-up-desktop">Inscription <ArrowRight size={15} /></Link>
+            </>}
       </div>
     </div>
   </header>;
