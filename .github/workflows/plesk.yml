@@ -1,7 +1,7 @@
 name: Build Plesk
 on:
   push:
-    branches: [main, plesk-prebuilt]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write

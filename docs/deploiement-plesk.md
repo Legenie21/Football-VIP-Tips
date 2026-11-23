@@ -10,7 +10,7 @@ Le contrôle du build refuse toute dépendance serveur externe non embarquée.
 
 Les fichiers compilés sont conservés comme pièces jointes d'une livraison
 GitHub (`plesk-ready`), pas dans l'historique du dépôt. Le workflow
-`.github/workflows/plesk.yml` les produit après chaque push sur `main` ou `plesk-prebuilt`,
+`.github/workflows/plesk.yml` les produit après chaque push sur `main`,
 après vérification TypeScript et tests de démarrage isolés.
 Il ne déploie pas le site et ne contacte pas la base de données.
 GitHub Actions doit être autorisé sur le dépôt ; son utilisation est soumise
@@ -34,7 +34,7 @@ Privilégier Node.js 24 LTS si votre hébergeur le propose ; la version 26
 affichée n'a pas été testée dans votre hébergement.
 
 1. Dans **Git**, configurer le dépôt `Legenie21/Football-VIP-Tips`,
-   branche `plesk-prebuilt`, et un déploiement **manuel** dans le dossier de
+   branche `main`, et un déploiement **manuel** dans le dossier de
    l'application `/teamprono.com`. Ne pas choisir un répertoire contenant
    un autre site sans l'accord du propriétaire et sans protection adaptée
    chez l'hébergeur.
@@ -92,7 +92,7 @@ l'hébergeur. Aucun jeton de ce type n'est requis ni configuré ici.
 
 ## Mises à jour suivantes
 
-1. Faire le push sur `plesk-prebuilt` (ou `main` après réconciliation explicite des historiques).
+1. Faire le push sur `main`.
 2. Attendre le workflow **Build Plesk** terminé avec succès.
 3. Dans Plesk : récupérer les changements, **Deploy Now**, puis **Restart App**.
 
@@ -150,20 +150,26 @@ deux fichiers précompilés.
 
 ## Commandes GitHub
 
-La vérification actuelle a constaté que l'historique local et `origin/main`
-n'ont pas d'ancêtre commun. **Ne pas forcer un push sur `main`.** La commande
-ci-dessous publie cette préparation sur une nouvelle branche `plesk-prebuilt`,
-sans modifier la branche d'origine. Sélectionner cette branche dans Plesk.
-Si elle existe déjà et que le push est refusé, ne pas forcer : examiner son
-historique avant toute réconciliation.
+La branche de travail et de déploiement demandée est **uniquement `main`**.
+La vérification actuelle a constaté que les historiques local et GitHub
+n'ont pas d'ancêtre commun. Ils doivent être réconciliés avant le premier
+push sur `main`, en conservant le code actuel et l'historique du dépôt
+d'origine. Une fusion automatique normale présente des conflits ; ne pas
+la lancer sans décision explicite sur les versions à conserver.
+Ne pas créer une autre branche de déploiement pour contourner ce problème,
+ne pas forcer le push et ne supprimer aucune branche distante sans accord.
+
+Après réconciliation, ces commandes envoient vers `main`. Le contrôle
+d'ascendance bloque l'envoi si cette condition n'est pas remplie :
 
 ```sh
 git status
+git fetch origin
 git add app.js package.json .gitignore .replitignore replit.md public/.gitkeep \
   artifacts/api-server/src/plesk.ts artifacts/pronostics-foot/vite.config.ts \
   scripts/plesk .github/workflows/plesk.yml docs/deploiement-plesk.md
 git commit -m "Prepare prebuilt Plesk delivery"
-git push origin HEAD:plesk-prebuilt
+git merge-base --is-ancestor origin/main HEAD && git push origin HEAD:main
 ```
 
 Documentation de référence :

@@ -47,3 +47,13 @@ demandées par le propriétaire.
 réel de Plesk ; confirmer la disponibilité et la version de Node.js avant de
 choisir le point de démarrage. Ne pas confondre ce conditionnement avec la
 finalisation de l'authentification, de la base de données ou de la messagerie.
+
+Le propriétaire exige que le code soit poussé sur la branche `main` et refuse
+une deuxième branche de déploiement.
+
+**Why:** correction explicite du propriétaire après la proposition d'une branche
+distincte pour contourner les historiques Git indépendants.
+
+**How to apply:** utiliser `main` dans les commandes, le workflow et Plesk ;
+résoudre les divergences d'historique sans push forcé ni création d'une branche
+de déploiement supplémentaire. Ne pas supprimer une branche distante sans accord.
