@@ -23,8 +23,9 @@ précisément ce qui manque.
 configurations ou l'utilisation d'un autre service par défaut.
 
 **How to apply:** ne pas bloquer la mise en ligne ou le raccordement SQL sur
-l'absence de SMTP. Laisser indisponibles les fonctions nécessitant l'envoi
-d'e-mails sans contourner la vérification OTP. Ne pas remplacer Cybrancee par
+l'absence de SMTP. La nouvelle inscription sans confirmation e-mail ne nécessite
+pas de SMTP ; la récupération de mot de passe par e-mail attend la messagerie.
+Ne pas remplacer Cybrancee par
 une base Replit simplement parce qu'une variable de connexion est disponible ;
 confirmer le moteur réel et les conditions de connexion depuis Plesk.
 

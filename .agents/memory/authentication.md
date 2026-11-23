@@ -9,23 +9,23 @@ Le site existant utilisait Clerk configuré automatiquement par Replit, même si
 
 **How to apply:** mettre en place la gestion directe des comptes pour satisfaire les exigences ci-dessous ; ne pas activer Auth0 à la place.
 
-La connexion demandée est soit par e-mail et mot de passe, soit par numéro de téléphone précédé de l’indicatif du pays et mot de passe. L’e-mail doit être vérifié à l’inscription par un code OTP. Un OTP par e-mail est également nécessaire pour réinitialiser un mot de passe oublié. Aucun OTP n’est demandé à la connexion et aucune vérification SMS n’est demandée.
+Le parcours demandé maintenant est une inscription avec e-mail, nom d’utilisateur et mot de passe, sans e-mail de confirmation. Après inscription, l’utilisateur doit pouvoir se connecter et accéder à son tableau de bord. Aucun OTP n’est demandé à l’inscription ou à la connexion.
 
-**Why:** exigence explicite du propriétaire, distincte d’une connexion par code SMS.
+**Why:** le propriétaire a remplacé son exigence initiale de vérification OTP à l’inscription et la collecte du nom, du prénom et du téléphone par ce parcours simplifié.
 
-**How to apply:** vérifier l’e-mail avant d’activer le compte ; ne pas remplacer le mot de passe de connexion par un code à usage unique et ne pas imposer une vérification SMS.
+**How to apply:** activer le compte sans messagerie ; ne pas réintroduire la vérification OTP à l’inscription. Ne pas considérer une adresse non vérifiée comme une preuve de propriété.
 
-L’inscription demandée recueille le nom, le prénom, l’e-mail, le numéro de téléphone et le mot de passe avant la connexion.
+La récupération de mot de passe par OTP e-mail reste une exigence antérieure, distincte du nouveau parcours d’inscription. Mailtrap doit être raccordé plus tard.
 
-**Why:** exigence explicite du propriétaire.
+**Why:** la nouvelle demande retire la confirmation à l’inscription, sans demander de modifier la récupération des mots de passe.
 
-**How to apply:** distinguer la collecte du téléphone comme information de profil de son utilisation comme identifiant de connexion.
+**How to apply:** ne pas bloquer l’inscription sur le SMTP ; ne pas simuler une récupération de mot de passe opérationnelle sans transport d’e-mails.
 
-Le propriétaire exige les deux modes de connexion et indique qu’il n’y a encore aucun compte existant.
+Le propriétaire avait indiqué qu’il n’y avait aucun compte existant lors de la préparation de l’authentification.
 
-**Why:** il a confirmé vouloir la connexion par e-mail ou téléphone avec mot de passe malgré la limite du Clerk géré par Replit.
+**Why:** information donnée par le propriétaire, qui peut avoir changé depuis.
 
-**How to apply:** une configuration d’authentification différente est autorisée pour répondre à cette exigence ; vérifier à nouveau l’absence de comptes avant toute opération destructive.
+**How to apply:** vérifier à nouveau l’absence de comptes avant toute opération destructive ; ne pas déduire que la base reste vide.
 
 Le propriétaire prévoit d’utiliser ultérieurement une base de données Cybrancee pour son site.
 
