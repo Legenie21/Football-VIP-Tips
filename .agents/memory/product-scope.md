@@ -57,3 +57,12 @@ distincte pour contourner les historiques Git indépendants.
 **How to apply:** utiliser `main` dans les commandes, le workflow et Plesk ;
 résoudre les divergences d'historique sans push forcé ni création d'une branche
 de déploiement supplémentaire. Ne pas supprimer une branche distante sans accord.
+
+Le propriétaire refuse la configuration de déploiement
+`node scripts/plesk/install.cjs`.
+
+**Why:** refus explicite du propriétaire.
+
+**How to apply:** ne plus demander d'activer cette commande dans Plesk ;
+convenir avec le propriétaire d'un autre mode de livraison précompilée avant
+de remplacer le mécanisme existant.
